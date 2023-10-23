@@ -48,6 +48,9 @@
     <ClInclude Include="Obj_Interaction.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="EventHandle.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NetworkGame_Proj.cpp">
@@ -66,6 +69,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Obj_Interaction.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="EventHandle.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

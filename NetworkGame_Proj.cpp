@@ -1,8 +1,10 @@
 ﻿#include "Common.h"
 #include "framework.h"
+
 #include "NetworkGame_Proj.h"
 #include "GameSet.h"
 #include "Obj_Interaction.h"
+#include "EventHandle.h"
 #include "Global.h"
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -20,7 +22,8 @@ typedef struct box {
 
 // 오브젝트 통제 변수
 GameSet* g_game = NULL;
-Obj_Interaction* g_Interaction = NULL;
+    
+
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
 
@@ -142,8 +145,21 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    Obj_Interaction* g_Interaction = NULL;
+    g_Interaction = new Obj_Interaction;
+
+    EventHandle g_handle(g_Interaction, wParam);
+    
     switch (message)
     {
+    case WM_CREATE:
+        break;
+    case WM_KEYDOWN:
+        g_handle.checkEvent(wParam);
+        break;
+    case WM_KEYUP:
+        g_handle.ResetEvent();
+        break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -165,8 +181,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            g_game->KeyInput(g_Interaction);
-            g_game->DrawAll();
+            //g_game->DrawAll();
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
             EndPaint(hWnd, &ps);
         }
@@ -177,6 +192,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
+
+    delete g_Interaction;
     return 0;
 }
 
