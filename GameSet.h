@@ -13,11 +13,17 @@ public:
 	GameSet(HDC hdc);
 	~GameSet();
 
-	void DrawAll();
-	void KeyInput(Obj_Interaction* ui);
+	void DrawAll(HINSTANCE hInst);
+	//void KeyInput(Obj_Interaction* ui);
 
 private:
 	Render* m_Renderer;
 	ObjManager* m_ObjManager;
+
+	int Player1_Index;
+	int Player2_Index;
+
+	int Player1_bubble;
+	int Player2_bubble;
 };
 

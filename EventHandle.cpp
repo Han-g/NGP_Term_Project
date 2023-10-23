@@ -1,12 +1,13 @@
 #include "EventHandle.h"
 
-EventHandle::EventHandle(Obj_Interaction* Obj_Interact, WPARAM wParam)
+EventHandle::EventHandle(WPARAM wParam)
 {
-	g_Interaction = Obj_Interact;
+	g_Interaction = new Obj_Interaction;
 }
 
 EventHandle::~EventHandle()
 {
+	delete g_Interaction;
 }
 
 void EventHandle::checkEvent(WPARAM wParam)

@@ -9,9 +9,10 @@ public:
 	~Render();
 
 	bool Init();
-	void Draw(HDC hdc, HDC memdc, HWND hWnd, HBITMAP hBit, PAINTSTRUCT ps);
+	void Draw(HBITMAP hBit);
 
 private:
 	HBRUSH hBrush, oldBrush;
+	HDC g_hdc, memdc;
 };
 

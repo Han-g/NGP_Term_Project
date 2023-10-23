@@ -6,7 +6,7 @@
 class EventHandle
 {
 public:
-	EventHandle(Obj_Interaction* Obj_Interaction, WPARAM wParam);
+	EventHandle(WPARAM wParam);
 	~EventHandle();
 
 	void checkEvent(WPARAM wParam);

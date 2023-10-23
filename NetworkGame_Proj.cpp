@@ -23,7 +23,6 @@ typedef struct box {
 // 오브젝트 통제 변수
 GameSet* g_game = NULL;
     
-
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
 
@@ -145,10 +144,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    Obj_Interaction* g_Interaction = NULL;
-    g_Interaction = new Obj_Interaction;
-
-    EventHandle g_handle(g_Interaction, wParam);
+    static Obj_Interaction* g_Interaction = NULL;
+    EventHandle g_handle(wParam);
     
     switch (message)
     {
@@ -181,7 +178,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            //g_game->DrawAll();
+            g_game = new GameSet(hdc);
+            g_game->DrawAll(hInst);
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
             EndPaint(hWnd, &ps);
         }
@@ -193,7 +191,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
 
-    delete g_Interaction;
     return 0;
 }
 

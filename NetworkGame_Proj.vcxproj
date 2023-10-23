@@ -153,6 +153,13 @@
     <ResourceCompile Include="NetworkGame_Proj.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="assets\bomb\1.bmp" />
+    <Image Include="assets\bomb\pop.bmp" />
+    <Image Include="assets\player\bazzi\down.bmp" />
+    <Image Include="assets\player\bazzi\left.bmp" />
+    <Image Include="assets\player\bazzi\right.bmp" />
+    <Image Include="assets\player\bazzi\up.bmp" />
+    <Image Include="assets\player\bazzi\wait.bmp" />
     <Image Include="NetworkGame_Proj.ico" />
     <Image Include="small.ico" />
   </ItemGroup>

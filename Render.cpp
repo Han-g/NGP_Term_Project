@@ -4,6 +4,8 @@ Render::Render(HDC hdc)
 {
 	hBrush = CreateSolidBrush(RGB(0, 0, 255));
 	oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+	g_hdc = hdc;
+	memdc = NULL;
 }
 
 Render::~Render()
@@ -16,14 +18,15 @@ bool Render::Init()
 	return false;
 }
 
-void Render::Draw(HDC hdc, HDC memdc, HWND hWnd, HBITMAP hBit, PAINTSTRUCT ps)
+void Render::Draw(HBITMAP hBit)
 {
-	hdc = BeginPaint(hWnd, &ps);
-	memdc = CreateCompatibleDC(hdc);
+	memdc = CreateCompatibleDC(g_hdc);
 	SelectObject(memdc, hBit);
 
+	BitBlt(g_hdc, 0, 0, 330, 240, memdc, 0, 0, SRCCOPY);
+
 	hBrush = CreateSolidBrush(RGB(0, 0, 255));
-	oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+	oldBrush = (HBRUSH)SelectObject(g_hdc, hBrush);
 
 
 }

@@ -87,5 +87,26 @@
     <Image Include="NetworkGame_Proj.ico">
       <Filter>리소스 파일</Filter>
     </Image>
+    <Image Include="assets\player\bazzi\wait.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\player\bazzi\down.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\player\bazzi\up.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\player\bazzi\left.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\player\bazzi\right.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\bomb\1.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\bomb\pop.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
   </ItemGroup>
 </Project>
