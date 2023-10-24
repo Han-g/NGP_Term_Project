@@ -28,6 +28,11 @@ void Object::SetAcceleration(int x, int y)
 	accX = x, accY = y;
 }
 
+void Object::SetType(int t)
+{
+	type = t;
+}
+
 void Object::Update()
 {
 
@@ -38,14 +43,17 @@ void Object::Draw(HINSTANCE hInst, Render* Renderer)
 	HBITMAP hBit;
 	switch (type)
 	{
-	case 0:
+	case 0:	// Character
 		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP1));
-		Renderer->Draw(hBit);
+		Renderer->Draw(type, hBit);
 		break;
-	case 1:
+	case 1:	// Bubble
 		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP6));
+		Renderer->Draw(type, hBit);
 		break;
-	case 2:
+	case 2:	// Wall
+		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP6));
+		Renderer->Draw(type, hBit);
 		break;
 	default:
 		break;

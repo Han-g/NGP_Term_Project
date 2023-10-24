@@ -9,7 +9,7 @@ public:
 	EventHandle(WPARAM wParam);
 	~EventHandle();
 
-	void checkEvent(WPARAM wParam);
+	bool checkEvent();
 	void ResetEvent();
 
 private:

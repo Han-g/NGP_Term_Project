@@ -8,20 +8,25 @@ GameSet::GameSet(HDC hdc)
 	Player1_Index = m_ObjManager->SetObj(0, 0,
 		0, 0,
 		0, 0,
-		1);
+		0);
 	Player2_Index = m_ObjManager->SetObj(0, 0,
 		0, 0,
 		0, 0,
-		1);
+		0);
 
-	Player1_bubble = m_ObjManager->SetObj(0, 0,
-		0, 0,
-		0, 0,
-		1);
-	Player2_bubble = m_ObjManager->SetObj(0, 0,
-		0, 0,
-		0, 0,
-		1);
+	for(int i = 0; i < 5; i++)
+	{
+		Player1_bubble[i] = m_ObjManager->SetObj(0, 0,
+			0, 0,
+			0, 0,
+			-1);
+		Player2_bubble[i] = m_ObjManager->SetObj(0, 0,
+			0, 0,
+			0, 0,
+			-1);
+	}
+
+
 }
 
 GameSet::~GameSet()
@@ -40,31 +45,3 @@ void GameSet::DrawAll(HINSTANCE hInst)
 		m_ObjManager->DrawObj(hInst, m_Renderer);	
 	}
 }
-
-//void GameSet::KeyInput(Obj_Interaction* ui)
-//{
-//	int x, y = 0;
-//	
-//
-//	if (ui->Is_Key_UP()) {
-//
-//	}
-//	if (ui->Is_Key_DOWN()) {
-//
-//	}
-//	if (ui->Is_Key_LEFT()) {
-//
-//	}
-//	if (ui->Is_Key_RIGHT()) {
-//
-//	}
-//
-//	if (ui->Is_Key_BUBBLE()) {
-//
-//	}
-//	if (ui->Is_Key_ITEM()) {
-//
-//	}
-//
-//	//m_ObjManager->SetObjVel()
-//}

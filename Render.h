@@ -9,7 +9,7 @@ public:
 	~Render();
 
 	bool Init();
-	void Draw(HBITMAP hBit);
+	void Draw(int type, HBITMAP hBit);
 
 private:
 	HBRUSH hBrush, oldBrush;

@@ -23,7 +23,7 @@ private:
 	int Player1_Index;
 	int Player2_Index;
 
-	int Player1_bubble;
-	int Player2_bubble;
+	int Player1_bubble[5];
+	int Player2_bubble[5];
 };
 

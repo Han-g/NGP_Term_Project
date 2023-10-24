@@ -5,6 +5,7 @@ ObjManager::ObjManager()
 	for (int i = 0; i < MAX_OBJ_NUM; i++) {
 		objects[i] = NULL;
 	}
+
 }
 
 ObjManager::~ObjManager()
@@ -67,5 +68,9 @@ void ObjManager::DrawObj(HINSTANCE hInst, Render* Renderer)
 
 void ObjManager::Update()
 {
-
+	if (eventhandle->checkEvent()) {
+		for (int i = 0; i < MAX_OBJ_NUM; i++)	{
+			objects[i]->Update();
+		}
+	}
 }

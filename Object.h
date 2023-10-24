@@ -13,6 +13,7 @@ public:
 	void SetPosition(int x, int y);
 	void SetVelicity(int x, int y);
 	void SetAcceleration(int x, int y);
+	void SetType(int t);
 
 	void Update();
 	void Draw(HINSTANCE hInst, Render* renderer);

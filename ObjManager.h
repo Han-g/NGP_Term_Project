@@ -14,7 +14,7 @@ public:
 	int SetObj(	int posX, int posY,
 				int velX, int velY,
 				int accX, int accY,
-				int type);
+				int type );
 	void SetObjVel(int index, int velX, int velY);
 	bool DelObj(int index);
 
@@ -23,5 +23,6 @@ public:
 
 private:
 	Object* objects[MAX_OBJ_NUM];
+	EventHandle* eventhandle;
 };
 

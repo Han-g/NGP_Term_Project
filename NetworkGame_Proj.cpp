@@ -152,7 +152,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         break;
     case WM_KEYDOWN:
-        g_handle.checkEvent(wParam);
+        g_handle.checkEvent();
         break;
     case WM_KEYUP:
         g_handle.ResetEvent();
@@ -178,6 +178,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
+
             g_game = new GameSet(hdc);
             g_game->DrawAll(hInst);
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
