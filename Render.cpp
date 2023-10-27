@@ -18,22 +18,36 @@ bool Render::Init()
 	return false;
 }
 
-void Render::Draw(int type, HBITMAP hBit)
+void Render::Draw(int x, int y, int type, HBITMAP hBit)
 {
 	memdc = CreateCompatibleDC(g_hdc);
 	SelectObject(memdc, hBit);
 
 	switch(type)
-	{
+	{	
 		// tiles -> 52, 52 | char -> 64, 76 | bubble 56, 54
-	case 0:	// character
-		BitBlt(g_hdc, 0, 0, 64, 76, memdc, 0, 0, SRCCOPY);
+	// character
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		BitBlt(g_hdc, x, y, 64, 76, memdc, 0, 0, SRCCOPY);
 		break;
-	case 1:	// bubble
-		BitBlt(g_hdc, 0, 0, 56, 54, memdc, 0, 0, SRCCOPY);
+	
+	// bubble
+	case 6:	
+	case 7:
+		BitBlt(g_hdc, x, y, 56, 54, memdc, 0, 0, SRCCOPY);
 		break;
-	case 2:	// background
-		BitBlt(g_hdc, 0, 0, 52, 52, memdc, 0, 0, SRCCOPY);
+	
+	// background
+	case 10:
+	case 11:	
+	case 12:
+	case 13:
+	case 14:
+		BitBlt(g_hdc, x, y, 52, 52, memdc, 0, 0, SRCCOPY);
 		break;
 	default:
 		break;

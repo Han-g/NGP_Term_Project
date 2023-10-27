@@ -25,5 +25,7 @@ private:
 
 	int Player1_bubble[5];
 	int Player2_bubble[5];
+
+	int Background[15][15];
 };
 

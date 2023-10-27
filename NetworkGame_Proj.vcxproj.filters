@@ -108,5 +108,17 @@
     <Image Include="assets\bomb\pop.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
+    <Image Include="assets\player\bazzi\bitmap8.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\player\bazzi\bitmap9.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\map\forest\tile\tile_1.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="assets\map\forest\tile\tile_6.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
   </ItemGroup>
 </Project>

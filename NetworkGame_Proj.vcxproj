@@ -155,6 +155,10 @@
   <ItemGroup>
     <Image Include="assets\bomb\1.bmp" />
     <Image Include="assets\bomb\pop.bmp" />
+    <Image Include="assets\map\forest\tile\tile_1.bmp" />
+    <Image Include="assets\map\forest\tile\tile_6.bmp" />
+    <Image Include="assets\player\bazzi\bitmap8.bmp" />
+    <Image Include="assets\player\bazzi\bitmap9.bmp" />
     <Image Include="assets\player\bazzi\down.bmp" />
     <Image Include="assets\player\bazzi\left.bmp" />
     <Image Include="assets\player\bazzi\right.bmp" />

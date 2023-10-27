@@ -34,6 +34,7 @@ int ObjManager::SetObj(int posX, int posY, int velX, int velY, int accX, int acc
 		objects[index]->SetPosition(posX, posY);
 		objects[index]->SetVelicity(velX, velY);
 		objects[index]->SetAcceleration(accX, accY);
+		objects[index]->SetType(type);
 		return index;
 	}
 
@@ -68,7 +69,8 @@ void ObjManager::DrawObj(HINSTANCE hInst, Render* Renderer)
 
 void ObjManager::Update()
 {
-	if (eventhandle->checkEvent()) {
+	//if (eventhandle->checkEvent()) 
+	{
 		for (int i = 0; i < MAX_OBJ_NUM; i++)	{
 			objects[i]->Update();
 		}

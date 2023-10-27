@@ -22,9 +22,28 @@ typedef struct box {
 
 // 오브젝트 통제 변수
 GameSet* g_game = NULL;
-    
+EventHandle g_event = NULL;
+
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
+
+void RenderBackground(PAINTSTRUCT ps, HDC hdc) {
+    static HBITMAP hBit;
+    hBit = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP9));
+    HDC memdc = CreateCompatibleDC(hdc);
+    SelectObject(memdc, hBit);
+
+    for (int i = 0; i < 15; i++) {
+        for (int j = 0; j < 15; j++) {
+            BitBlt(hdc, 0 + (i * 52), 0 + (j * 52), 52, 52, memdc, 0, 0, SRCCOPY);
+        }
+    }
+    //DeleteDC(memdc);
+}
+
+void RenderScene() {
+    g_game->DrawAll(hInst);
+}
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -68,6 +87,7 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
     {
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
+            //RenderScene();
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
@@ -118,8 +138,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+   HWND hWnd = CreateWindowW(
+       szWindowClass,           // 윈도우 클래스 이름
+       szTitle,                 // 윈도우 타이틀 이름
+       WS_OVERLAPPEDWINDOW,     // 윈도우 스타일
+       100, 100,                // 윈도우 생성 위치
+       window_size_w, window_size_d, 
+       nullptr,                 // 부모 윈도우 핸들 HWND
+       nullptr,                 // 메뉴 핸들 HMENU
+       hInstance,               // 응용 프로그램 인스턴스 HINSTANCE
+       nullptr                  // 생성 윈도우 정보 LPVOID
+   );
 
    if (!hWnd)
    {
@@ -146,13 +175,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static Obj_Interaction* g_Interaction = NULL;
     EventHandle g_handle(wParam);
+    PAINTSTRUCT ps;
+    HDC hdc = GetDC(hWnd);
     
     switch (message)
     {
     case WM_CREATE:
+        hdc = BeginPaint(hWnd, &ps);
+        g_game = new GameSet(hdc);
         break;
     case WM_KEYDOWN:
-        g_handle.checkEvent();
+        RenderScene();
         break;
     case WM_KEYUP:
         g_handle.ResetEvent();
@@ -176,12 +209,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_PAINT:
         {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-
-            g_game = new GameSet(hdc);
-            g_game->DrawAll(hInst);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
+            hdc = BeginPaint(hWnd, &ps);
+            RenderBackground(ps, hdc);
+            RenderScene();
             EndPaint(hWnd, &ps);
         }
         break;
