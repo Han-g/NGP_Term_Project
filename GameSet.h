@@ -13,7 +13,7 @@ public:
 	GameSet(HDC hdc);
 	~GameSet();
 
-	void DrawAll(HINSTANCE hInst);
+	void DrawAll(HDC hdc, HINSTANCE hInst);
 	void KeyInput(Obj_Interaction* ui);
 
 private:

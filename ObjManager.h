@@ -19,7 +19,7 @@ public:
 	void SetObjVel(int index, int velX, int velY);
 	bool DelObj(int index);
 
-	void DrawObj(HINSTANCE hInst, Render* renderer);
+	void DrawObj(HDC hdc, HINSTANCE hInst, Render* renderer);
 	void Update(obj_info changedVel);
 
 	void MoveObject(int index, int posX, int posY) {

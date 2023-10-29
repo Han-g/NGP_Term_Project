@@ -2,7 +2,7 @@
 
 GameSet::GameSet(HDC hdc)
 {
-	m_Renderer = new Render(hdc);
+	m_Renderer = new Render();
 	m_ObjManager = new ObjManager();
 
 	for(int i = 0; i < 15; i++) {
@@ -44,11 +44,11 @@ GameSet::~GameSet()
 	m_ObjManager = NULL;
 }
 
-void GameSet::DrawAll(HINSTANCE hInst)
+void GameSet::DrawAll(HDC hdc, HINSTANCE hInst)
 {
 	if (m_Renderer != NULL) {
 		//m_ObjManager->Update();
-		m_ObjManager->DrawObj(hInst, m_Renderer);	
+		m_ObjManager->DrawObj(hdc, hInst, m_Renderer);	
 	}
 }
 

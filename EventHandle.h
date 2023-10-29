@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Global.h"
-//#include "ObjManager.h"  // ObjManager 클래스의 정의를 포함
 #include "Obj_Interaction.h"
 #include "Interact_Interface.h"
 

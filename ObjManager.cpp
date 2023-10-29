@@ -56,11 +56,11 @@ bool ObjManager::DelObj(int index)
 	return false;
 }
 
-void ObjManager::DrawObj(HINSTANCE hInst, Render* Renderer)
+void ObjManager::DrawObj(HDC hdc, HINSTANCE hInst, Render* Renderer)
 {
 	for (int i = 0; i < MAX_OBJ_NUM; i++) {
 		if (objects[i] != NULL) {
-			objects[i]->Draw(hInst, Renderer);
+			objects[i]->Draw(hdc, hInst, Renderer);
 		}
 	}
 }

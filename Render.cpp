@@ -1,10 +1,8 @@
 #include "Render.h"
 
-Render::Render(HDC hdc)
+Render::Render()
 {
 	hBrush = CreateSolidBrush(RGB(0, 0, 255));
-	oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
-	g_hdc = hdc;
 	memdc = NULL;
 }
 
@@ -18,10 +16,11 @@ bool Render::Init()
 	return false;
 }
 
-void Render::Draw(int x, int y, int type, HBITMAP hBit)
+void Render::Draw(HDC hdc, int x, int y, int type, HBITMAP hBit)
 {
-	memdc = CreateCompatibleDC(g_hdc);
+	memdc = CreateCompatibleDC(hdc);
 	SelectObject(memdc, hBit);
+	oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
 
 	switch(type)
 	{	
@@ -32,13 +31,13 @@ void Render::Draw(int x, int y, int type, HBITMAP hBit)
 	case 3:
 	case 4:
 	case 5:
-		BitBlt(g_hdc, x, y, 64, 76, memdc, 0, 0, SRCCOPY);
+		BitBlt(hdc, x, y, 64, 76, memdc, 0, 0, SRCCOPY);
 		break;
 	
 	// bubble
 	case 6:	
 	case 7:
-		BitBlt(g_hdc, x, y, 56, 54, memdc, 0, 0, SRCCOPY);
+		BitBlt(hdc, x, y, 56, 54, memdc, 0, 0, SRCCOPY);
 		break;
 	
 	// background
@@ -47,12 +46,12 @@ void Render::Draw(int x, int y, int type, HBITMAP hBit)
 	case 12:
 	case 13:
 	case 14:
-		BitBlt(g_hdc, x, y, 52, 52, memdc, 0, 0, SRCCOPY);
+		BitBlt(hdc, x, y, 52, 52, memdc, 0, 0, SRCCOPY);
 		break;
 	default:
 		break;
 	}
 
 	hBrush = CreateSolidBrush(RGB(0, 0, 255));
-	oldBrush = (HBRUSH)SelectObject(g_hdc, hBrush);
+	oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
 }

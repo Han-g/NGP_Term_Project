@@ -37,7 +37,7 @@ void Object::Update()
 	
 }
 
-void Object::Draw(HINSTANCE hInst, Render* Renderer)
+void Object::Draw(HDC hdc, HINSTANCE hInst, Render* Renderer)
 {
 	HBITMAP hBit;
 	switch (info.type)
@@ -49,14 +49,14 @@ void Object::Draw(HINSTANCE hInst, Render* Renderer)
 	case 4:
 	case 5:
 		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP1));
-		Renderer->Draw(info.posX, info.posY, info.type, hBit);
+		Renderer->Draw(hdc, info.posX, info.posY, info.type, hBit);
 		break;
 	
 	// Bubble
 	case 6:	
 	case 7:
 		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP6));
-		Renderer->Draw(info.posX, info.posY, info.type, hBit);
+		Renderer->Draw(hdc, info.posX, info.posY, info.type, hBit);
 		break;
 	
 	// Wall
@@ -66,7 +66,7 @@ void Object::Draw(HINSTANCE hInst, Render* Renderer)
 	case 13:
 	case 14:
 		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP9));
-		Renderer->Draw(info.posX, info.posY, info.type, hBit);
+		Renderer->Draw(hdc, info.posX, info.posY, info.type, hBit);
 		break;
 	case -1:
 	default:

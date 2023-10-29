@@ -41,8 +41,8 @@ void RenderBackground(PAINTSTRUCT ps, HDC hdc) {
     //DeleteDC(memdc);
 }
 
-void RenderScene() {
-    g_game->DrawAll(hInst);
+void RenderScene(HDC hdc) {
+    g_game->DrawAll(hdc, hInst);
 }
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
@@ -186,7 +186,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_KEYDOWN:
         //g_handle.checkEvent();
-        RenderScene();
+        RenderScene(hdc);
         break;
     case WM_KEYUP:
         //g_handle.ResetEvent();
@@ -212,7 +212,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             hdc = BeginPaint(hWnd, &ps);
             RenderBackground(ps, hdc);
-            RenderScene();
+            RenderScene(hdc);
             EndPaint(hWnd, &ps);
         }
         break;

@@ -17,7 +17,7 @@ public:
 	obj_info returninfo();
 
 	void Update();
-	void Draw(HINSTANCE hInst, Render* renderer);
+	void Draw(HDC hdc, HINSTANCE hInst, Render* renderer);
 
 private:
 	obj_info info;
