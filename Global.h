@@ -37,7 +37,7 @@
 typedef struct char_ability {
 	int bubble_len;
 	int bubble_num;
-};
+} char_ability;
 
 typedef struct obj_info {
 	int posX, posY;
@@ -45,4 +45,4 @@ typedef struct obj_info {
 	int type;
 	int obj_status;
 	char_ability ablility;
-};
+} obj_info;

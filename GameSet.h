@@ -14,7 +14,7 @@ public:
 	~GameSet();
 
 	void DrawAll(HINSTANCE hInst);
-	//void KeyInput(Obj_Interaction* ui);
+	void KeyInput(Obj_Interaction* ui);
 
 private:
 	Render* m_Renderer;

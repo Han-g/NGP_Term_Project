@@ -2,10 +2,9 @@
 
 Object::Object()
 {
-	posX = 0; posY = 0;
-	velX = 0; velY = 0;
-	accX = 0; accY = 0;
-	type = 0;
+	info.posX = 0; info.posY = 0;
+	info.velX = 0; info.velY = 0;
+	info.type = 0;
 }
 
 Object::~Object()
@@ -15,33 +14,33 @@ Object::~Object()
 
 void Object::SetPosition(int x, int y)
 {
-	posX = x; posY = y;
+	info.posX = x; info.posY = y;
 }
 
 void Object::SetVelicity(int x, int y)
 {
-	velX = x; velY = y;
-}
-
-void Object::SetAcceleration(int x, int y)
-{
-	accX = x, accY = y;
+	info.velX = x; info.velY = y;
 }
 
 void Object::SetType(int t)
 {
-	type = t;
+	info.type = t;
+}
+
+obj_info Object::returninfo()
+{
+	return info;
 }
 
 void Object::Update()
 {
-
+	
 }
 
 void Object::Draw(HINSTANCE hInst, Render* Renderer)
 {
 	HBITMAP hBit;
-	switch (type)
+	switch (info.type)
 	{
 	// Character
 	case 1:	
@@ -50,14 +49,14 @@ void Object::Draw(HINSTANCE hInst, Render* Renderer)
 	case 4:
 	case 5:
 		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP1));
-		Renderer->Draw(posX, posY, type, hBit);
+		Renderer->Draw(info.posX, info.posY, info.type, hBit);
 		break;
 	
 	// Bubble
 	case 6:	
 	case 7:
 		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP6));
-		Renderer->Draw(posX, posY, type, hBit);
+		Renderer->Draw(info.posX, info.posY, info.type, hBit);
 		break;
 	
 	// Wall
@@ -67,7 +66,7 @@ void Object::Draw(HINSTANCE hInst, Render* Renderer)
 	case 13:
 	case 14:
 		hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP9));
-		Renderer->Draw(posX, posY, type, hBit);
+		Renderer->Draw(info.posX, info.posY, info.type, hBit);
 		break;
 	case -1:
 	default:

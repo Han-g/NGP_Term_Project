@@ -132,6 +132,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="GameSet.h" />
     <ClInclude Include="Global.h" />
+    <ClInclude Include="Interact_Interface.h" />
     <ClInclude Include="NetworkGame_Proj.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="ObjManager.h" />
@@ -143,6 +144,7 @@
   <ItemGroup>
     <ClCompile Include="EventHandle.cpp" />
     <ClCompile Include="GameSet.cpp" />
+    <ClCompile Include="Interact_Interface.cpp" />
     <ClCompile Include="NetworkGame_Proj.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="ObjManager.cpp" />

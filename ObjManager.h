@@ -4,8 +4,9 @@
 #include "Object.h"
 #include "EventHandle.h"
 #include "Global.h"
+#include "Interact_Interface.h"
 
-class ObjManager
+class ObjManager : public Interact_Interface
 {
 public:
 	ObjManager();
@@ -19,10 +20,22 @@ public:
 	bool DelObj(int index);
 
 	void DrawObj(HINSTANCE hInst, Render* renderer);
-	void Update();
+	void Update(obj_info changedVel);
 
+	void MoveObject(int index, int posX, int posY) {
+		obj_info objVel = objects[index]->returninfo();
+		objVel.posX += posX;
+		objVel.posY += posY;
+		objects[index]->SetPosition(objVel.posX, objVel.posY);
+	}
+
+	void SetObjectVelocity(int index, int velX, int velY) {
+		obj_info objVel = objects[index]->returninfo();
+		objVel.velX += velX;
+		objVel.velY += velY;
+		objects[index]->SetVelicity(velX, velY);
+	}
 private:
 	Object* objects[MAX_OBJ_NUM];
-	EventHandle* eventhandle;
+	//EventHandle* eventhandle;
 };
-

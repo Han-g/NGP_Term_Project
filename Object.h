@@ -12,16 +12,13 @@ public:
 
 	void SetPosition(int x, int y);
 	void SetVelicity(int x, int y);
-	void SetAcceleration(int x, int y);
 	void SetType(int t);
+
+	obj_info returninfo();
 
 	void Update();
 	void Draw(HINSTANCE hInst, Render* renderer);
 
 private:
-	int posX, posY = 0;
-	int velX, velY = 0;
-	int accX, accY = 0;
-
-	int type = 0;
+	obj_info info;
 };

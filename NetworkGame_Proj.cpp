@@ -22,7 +22,7 @@ typedef struct box {
 
 // 오브젝트 통제 변수
 GameSet* g_game = NULL;
-EventHandle g_event = NULL;
+//EventHandle g_event = NULL;
 
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
@@ -174,7 +174,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static Obj_Interaction* g_Interaction = NULL;
-    EventHandle g_handle(wParam);
+    //EventHandle g_handle(wParam);
     PAINTSTRUCT ps;
     HDC hdc = GetDC(hWnd);
     
@@ -185,10 +185,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         g_game = new GameSet(hdc);
         break;
     case WM_KEYDOWN:
+        //g_handle.checkEvent();
         RenderScene();
         break;
     case WM_KEYUP:
-        g_handle.ResetEvent();
+        //g_handle.ResetEvent();
         break;
     case WM_COMMAND:
         {

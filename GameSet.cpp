@@ -47,7 +47,12 @@ GameSet::~GameSet()
 void GameSet::DrawAll(HINSTANCE hInst)
 {
 	if (m_Renderer != NULL) {
-		m_ObjManager->Update();
+		//m_ObjManager->Update();
 		m_ObjManager->DrawObj(hInst, m_Renderer);	
 	}
+}
+
+void GameSet::KeyInput(Obj_Interaction* ui)
+{
+
 }

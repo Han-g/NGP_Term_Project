@@ -1,18 +1,23 @@
 #pragma once
 
 #include "Global.h"
+//#include "ObjManager.h"  // ObjManager 클래스의 정의를 포함
 #include "Obj_Interaction.h"
+#include "Interact_Interface.h"
 
-class EventHandle
-{
+class ObjManager;
+
+class EventHandle {
 public:
-	EventHandle(WPARAM wParam);
+	EventHandle(ObjManager* object, WPARAM wParam);
 	~EventHandle();
 
 	bool checkEvent();
 	void ResetEvent();
+	void HandleKeyEvent(Interact_Interface* Interact_interface);
 
 private:
+	ObjManager* objManager;
 	Obj_Interaction* g_Interaction;
+	WPARAM w;
 };
-
