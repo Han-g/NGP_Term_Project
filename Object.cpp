@@ -61,7 +61,7 @@ void Object::Draw(HDC hdc, HINSTANCE hInst, Render* Renderer)
 	
 	// Wall
 	case 10:
-	case 11:	
+	case 11:
 	case 12:
 	case 13:
 	case 14:

@@ -14,7 +14,7 @@ public:
 	~GameSet();
 
 	void DrawAll(HDC hdc, HINSTANCE hInst);
-	void KeyInput(Obj_Interaction* ui);
+	void KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam);
 
 private:
 	Render* m_Renderer;

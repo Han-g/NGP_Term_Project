@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Global.h"
+#include "ObjManager.h"
 #include "Obj_Interaction.h"
 #include "Interact_Interface.h"
 
@@ -13,7 +14,7 @@ public:
 
 	bool checkEvent();
 	void ResetEvent();
-	void HandleKeyEvent(Interact_Interface* Interact_interface);
+	void HandleKeyEvent();
 
 private:
 	ObjManager* objManager;

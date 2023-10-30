@@ -13,11 +13,11 @@ GameSet::GameSet(HDC hdc)
 	}
 
 	Player1_Index = m_ObjManager->SetObj(0, 0,
-		0, 0,
+		1, 1,
 		0, 0,
 		Char_Idle);
 	Player2_Index = m_ObjManager->SetObj(50, 50,
-		0, 0,
+		1, 1,
 		0, 0,
 		Char_Idle);
 
@@ -47,12 +47,11 @@ GameSet::~GameSet()
 void GameSet::DrawAll(HDC hdc, HINSTANCE hInst)
 {
 	if (m_Renderer != NULL) {
-		//m_ObjManager->Update();
 		m_ObjManager->DrawObj(hdc, hInst, m_Renderer);	
 	}
 }
 
-void GameSet::KeyInput(Obj_Interaction* ui)
+void GameSet::KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam)
 {
-
+	m_ObjManager->UpdateAll(g_Interaction, wParam);
 }

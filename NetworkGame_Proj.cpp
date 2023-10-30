@@ -22,7 +22,7 @@ typedef struct box {
 
 // 오브젝트 통제 변수
 GameSet* g_game = NULL;
-//EventHandle g_event = NULL;
+//EventHandle g_event = nullptr;
 
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
@@ -38,7 +38,7 @@ void RenderBackground(PAINTSTRUCT ps, HDC hdc) {
             BitBlt(hdc, 0 + (i * 52), 0 + (j * 52), 52, 52, memdc, 0, 0, SRCCOPY);
         }
     }
-    //DeleteDC(memdc);
+    DeleteDC(memdc);
 }
 
 void RenderScene(HDC hdc) {
@@ -87,7 +87,6 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
     {
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
-            //RenderScene();
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
@@ -174,7 +173,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static Obj_Interaction* g_Interaction = NULL;
-    //EventHandle g_handle(wParam);
+    //EventHandle g_handle();
     PAINTSTRUCT ps;
     HDC hdc = GetDC(hWnd);
     
@@ -183,13 +182,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         hdc = BeginPaint(hWnd, &ps);
         g_game = new GameSet(hdc);
+        g_Interaction = new Obj_Interaction;
         break;
     case WM_KEYDOWN:
-        //g_handle.checkEvent();
-        RenderScene(hdc);
+        //if(g_event != NULL)
+        g_game->KeyInput(g_Interaction, wParam);
         break;
     case WM_KEYUP:
         //g_handle.ResetEvent();
+        InvalidateRect(hWnd, NULL, TRUE);
         break;
     case WM_COMMAND:
         {
@@ -217,6 +218,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+        delete g_Interaction;
         PostQuitMessage(0);
         break;
     default:

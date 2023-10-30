@@ -1,8 +1,8 @@
 #include "EventHandle.h"
 
-EventHandle::EventHandle(ObjManager* object, WPARAM wParam)
+EventHandle::EventHandle(ObjManager* objects, WPARAM wParam)
 {
-	this->objManager = object;
+	this->objManager = objects;
 	g_Interaction = new Obj_Interaction;
 	w = wParam;
 }
@@ -44,20 +44,20 @@ void EventHandle::ResetEvent()
 	g_Interaction->KeyUp();
 }
 
-void EventHandle::HandleKeyEvent(Interact_Interface* Interact_interface)
+void EventHandle::HandleKeyEvent()
 {
-	if (Interact_interface != NULL) {
+	if (objManager != NULL) {
 		if (g_Interaction->Is_Key_UP()) {
-			
+			objManager->SetObjectVelocity(225, 0, -1);
 		}
 		if (g_Interaction->Is_Key_DOWN()) {
-			//Interact_interface->MoveObject();
+			objManager->SetObjectVelocity(225, 0, 1);
 		}
 		if (g_Interaction->Is_Key_LEFT()) {
-			//Interact_interface->MoveObject();
+			objManager->SetObjectVelocity(255, -1, 0);
 		}
 		if (g_Interaction->Is_Key_RIGHT()) {
-			//Interact_interface->MoveObject();
+			objManager->SetObjectVelocity(255, 1, 0);
 		}
 
 		if (g_Interaction->Is_Key_BUBBLE()) {

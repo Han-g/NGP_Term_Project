@@ -20,6 +20,7 @@ Obj_Interaction::~Obj_Interaction()
 
 bool Obj_Interaction::KeyDown(WPARAM wParam)
 {
+	index = wParam;
 	switch (wParam)
 	{
 	case 37: // left
@@ -63,6 +64,8 @@ bool Obj_Interaction::KeyUp()
 	m_Key_BUBBLE = false;
 	m_Key_ITEM = false;
 
+	index = 0;
+
 	return true;
 }
 
@@ -95,3 +98,9 @@ bool Obj_Interaction::Is_Key_ITEM()
 {
 	return m_Key_ITEM;
 }
+
+WPARAM Obj_Interaction::returnInput()
+{
+	return index;
+}
+

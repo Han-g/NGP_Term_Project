@@ -3,6 +3,7 @@
 Render::Render()
 {
 	hBrush = CreateSolidBrush(RGB(0, 0, 255));
+	oldBrush = CreateSolidBrush(RGB(0, 0, 255));
 	memdc = NULL;
 }
 

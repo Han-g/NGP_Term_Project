@@ -65,9 +65,40 @@ void ObjManager::DrawObj(HDC hdc, HINSTANCE hInst, Render* Renderer)
 	}
 }
 
-void ObjManager::Update(obj_info changedVel)
+void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 {
+	g_Interaction->KeyDown(wParam);
+
 	for (int i = 0; i < MAX_OBJ_NUM; i++)	{
-		MoveObject(i, changedVel.posX, changedVel.posY);
+		if(objects[i]) {
+			obj_info temp = objects[i]->returninfo();
+			if (temp.type >= Char_Idle && temp.type <= Char_Down) {
+				if (g_Interaction->Is_Key_UP()) {
+					MoveObject(i, temp.posX, temp.posY + temp.velX);
+				}
+
+				if (g_Interaction->Is_Key_DOWN()) {
+					MoveObject(i, temp.posX, temp.posY - temp.velX);
+				}
+
+				if (g_Interaction->Is_Key_LEFT()) {
+					MoveObject(i, temp.posX - temp.velY, temp.posY);
+				}
+
+				if (g_Interaction->Is_Key_RIGHT()) {
+					MoveObject(i, temp.posX + temp.velY, temp.posY);
+				}
+
+				if (g_Interaction->Is_Key_BUBBLE()) {
+					// 'BUBBLE' 키가 눌려 있을 때의 동작
+				}
+
+				if (g_Interaction->Is_Key_ITEM()) {
+					// 'ITEM' 키가 눌려 있을 때의 동작
+				}
+			}
+		}
 	}
+
+	g_Interaction->KeyUp();
 }

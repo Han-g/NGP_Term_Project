@@ -1,9 +1,10 @@
 #pragma once
 
+#include "Global.h"
 #include "Render.h"
 #include "Object.h"
+#include "Obj_Interaction.h"
 #include "EventHandle.h"
-#include "Global.h"
 #include "Interact_Interface.h"
 
 class ObjManager : public Interact_Interface
@@ -20,7 +21,7 @@ public:
 	bool DelObj(int index);
 
 	void DrawObj(HDC hdc, HINSTANCE hInst, Render* renderer);
-	void Update(obj_info changedVel);
+	void UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam);
 
 	void MoveObject(int index, int posX, int posY) {
 		obj_info objVel = objects[index]->returninfo();
@@ -35,6 +36,7 @@ public:
 		objVel.velY += velY;
 		objects[index]->SetVelicity(velX, velY);
 	}
+
 private:
 	Object* objects[MAX_OBJ_NUM];
 	//EventHandle* eventhandle;
