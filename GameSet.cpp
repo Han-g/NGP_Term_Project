@@ -13,11 +13,11 @@ GameSet::GameSet(HDC hdc)
 	}
 
 	Player1_Index = m_ObjManager->SetObj(0, 0,
-		1, 1,
+		0, 0,
 		0, 0,
 		Char_Idle);
 	Player2_Index = m_ObjManager->SetObj(50, 50,
-		1, 1,
+		0, 0,
 		0, 0,
 		Char_Idle);
 
@@ -26,7 +26,7 @@ GameSet::GameSet(HDC hdc)
 		Player1_bubble[i] = m_ObjManager->SetObj(0, 0,
 			0, 0,
 			0, 0,
-			Non_Obj);
+			Bubble_Idle);
 		Player2_bubble[i] = m_ObjManager->SetObj(0, 0,
 			0, 0,
 			0, 0,

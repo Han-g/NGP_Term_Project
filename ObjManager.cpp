@@ -68,25 +68,29 @@ void ObjManager::DrawObj(HDC hdc, HINSTANCE hInst, Render* Renderer)
 void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 {
 	g_Interaction->KeyDown(wParam);
+	EventHandle g_handle(this, wParam, g_Interaction);
 
 	for (int i = 0; i < MAX_OBJ_NUM; i++)	{
 		if(objects[i]) {
 			obj_info temp = objects[i]->returninfo();
 			if (temp.type >= Char_Idle && temp.type <= Char_Down) {
+				g_handle.HandleKeyEvent(i);
+				temp = objects[i]->returninfo();
+
 				if (g_Interaction->Is_Key_UP()) {
-					MoveObject(i, temp.posX, temp.posY + temp.velX);
+					MoveObject(i, temp.velX, temp.velY);
 				}
 
 				if (g_Interaction->Is_Key_DOWN()) {
-					MoveObject(i, temp.posX, temp.posY - temp.velX);
+					MoveObject(i, temp.velX, temp.velY);
 				}
 
 				if (g_Interaction->Is_Key_LEFT()) {
-					MoveObject(i, temp.posX - temp.velY, temp.posY);
+					MoveObject(i, temp.velX, temp.velY);
 				}
 
 				if (g_Interaction->Is_Key_RIGHT()) {
-					MoveObject(i, temp.posX + temp.velY, temp.posY);
+					MoveObject(i, temp.velX, temp.velY);
 				}
 
 				if (g_Interaction->Is_Key_BUBBLE()) {
@@ -97,6 +101,8 @@ void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 					// 'ITEM' 키가 눌려 있을 때의 동작
 				}
 			}
+
+			objects[i]->SetVelicity(0, 0);
 		}
 	}
 

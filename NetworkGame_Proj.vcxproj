@@ -127,6 +127,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Bubble.h" />
+    <ClInclude Include="Character.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="EventHandle.h" />
     <ClInclude Include="framework.h" />
@@ -142,6 +144,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Bubble.cpp" />
+    <ClCompile Include="Character.cpp" />
     <ClCompile Include="EventHandle.cpp" />
     <ClCompile Include="GameSet.cpp" />
     <ClCompile Include="Interact_Interface.cpp" />

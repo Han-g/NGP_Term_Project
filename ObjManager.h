@@ -23,10 +23,10 @@ public:
 	void DrawObj(HDC hdc, HINSTANCE hInst, Render* renderer);
 	void UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam);
 
-	void MoveObject(int index, int posX, int posY) {
+	void MoveObject(int index, int velX, int velY) {
 		obj_info objVel = objects[index]->returninfo();
-		objVel.posX += posX;
-		objVel.posY += posY;
+		objVel.posX += velX;
+		objVel.posY += velY;
 		objects[index]->SetPosition(objVel.posX, objVel.posY);
 	}
 

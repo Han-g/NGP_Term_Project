@@ -9,12 +9,12 @@ class ObjManager;
 
 class EventHandle {
 public:
-	EventHandle(ObjManager* object, WPARAM wParam);
+	EventHandle(ObjManager* object, WPARAM wParam, Obj_Interaction* Interact);
 	~EventHandle();
 
 	bool checkEvent();
 	void ResetEvent();
-	void HandleKeyEvent();
+	void HandleKeyEvent(int index);
 
 private:
 	ObjManager* objManager;
