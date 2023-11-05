@@ -8,8 +8,8 @@ public:
 	Obj_Interaction();
 	~Obj_Interaction();
 
-	void KeyDown(WPARAM wParam);
-	void KeyUp();
+	bool KeyDown(WPARAM wParam);
+	bool KeyUp();
 
 	bool Is_Key_UP();
 	bool Is_Key_DOWN();
@@ -18,6 +18,8 @@ public:
 
 	bool Is_Key_BUBBLE();
 	bool Is_Key_ITEM();
+
+	WPARAM returnInput();
 
 private:
 	WPARAM index;

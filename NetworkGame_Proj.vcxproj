@@ -127,11 +127,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Bubble.h" />
+    <ClInclude Include="Character.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="EventHandle.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GameSet.h" />
     <ClInclude Include="Global.h" />
+    <ClInclude Include="Interact_Interface.h" />
     <ClInclude Include="NetworkGame_Proj.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="ObjManager.h" />
@@ -141,8 +144,11 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Bubble.cpp" />
+    <ClCompile Include="Character.cpp" />
     <ClCompile Include="EventHandle.cpp" />
     <ClCompile Include="GameSet.cpp" />
+    <ClCompile Include="Interact_Interface.cpp" />
     <ClCompile Include="NetworkGame_Proj.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="ObjManager.cpp" />
@@ -153,6 +159,17 @@
     <ResourceCompile Include="NetworkGame_Proj.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="assets\bomb\1.bmp" />
+    <Image Include="assets\bomb\pop.bmp" />
+    <Image Include="assets\map\forest\tile\tile_1.bmp" />
+    <Image Include="assets\map\forest\tile\tile_6.bmp" />
+    <Image Include="assets\player\bazzi\bitmap8.bmp" />
+    <Image Include="assets\player\bazzi\bitmap9.bmp" />
+    <Image Include="assets\player\bazzi\down.bmp" />
+    <Image Include="assets\player\bazzi\left.bmp" />
+    <Image Include="assets\player\bazzi\right.bmp" />
+    <Image Include="assets\player\bazzi\up.bmp" />
+    <Image Include="assets\player\bazzi\wait.bmp" />
     <Image Include="NetworkGame_Proj.ico" />
     <Image Include="small.ico" />
   </ItemGroup>

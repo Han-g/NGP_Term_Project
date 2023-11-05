@@ -5,13 +5,14 @@
 class Render
 {
 public:
-	Render(HDC hdc);
+	Render();
 	~Render();
 
 	bool Init();
-	void Draw(HDC hdc, HDC memdc, HWND hWnd, HBITMAP hBit, PAINTSTRUCT ps);
+	void Draw(HDC hdc, int x, int y, int type, HBITMAP hBit);
 
 private:
 	HBRUSH hBrush, oldBrush;
+	HDC memdc;
 };
 

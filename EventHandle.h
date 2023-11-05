@@ -1,18 +1,23 @@
 #pragma once
 
 #include "Global.h"
+#include "ObjManager.h"
 #include "Obj_Interaction.h"
+#include "Interact_Interface.h"
 
-class EventHandle
-{
+class ObjManager;
+
+class EventHandle {
 public:
-	EventHandle(Obj_Interaction* Obj_Interaction, WPARAM wParam);
+	EventHandle(ObjManager* object, WPARAM wParam, Obj_Interaction* Interact);
 	~EventHandle();
 
-	void checkEvent(WPARAM wParam);
+	bool checkEvent();
 	void ResetEvent();
+	void HandleKeyEvent(int index);
 
 private:
+	ObjManager* objManager;
 	Obj_Interaction* g_Interaction;
+	WPARAM w;
 };
-

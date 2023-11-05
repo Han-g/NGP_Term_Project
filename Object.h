@@ -1,5 +1,7 @@
 #pragma once
 
+#include "resource.h"
+#include "Render.h"
 #include "Global.h"
 
 class Object
@@ -10,11 +12,16 @@ public:
 
 	void SetPosition(int x, int y);
 	void SetVelicity(int x, int y);
-	void SetAcceleration(int x, int y);
+	void SetType(int t);
+	void SetAbility(char_ability ability);
+	void PutBubble();
+	void SetBubble(int len);
+
+	obj_info returninfo();
+
+	void Update();
+	void Draw(HDC hdc, HINSTANCE hInst, Render* renderer);
 
 private:
-	int posX, posY = 0;
-	int velX, velY = 0;
-	int accX, accY = 0;
+	obj_info info;
 };
-
