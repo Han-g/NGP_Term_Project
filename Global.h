@@ -26,6 +26,7 @@
 
 #define Bubble_Idle	6
 #define Bubble_bomb	7
+#define Non_Bubble	8
 
 #define BackGround	10
 #define Bg_tile1	11

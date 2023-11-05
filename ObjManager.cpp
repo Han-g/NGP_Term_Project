@@ -5,6 +5,8 @@ ObjManager::ObjManager()
 	for (int i = 0; i < MAX_OBJ_NUM; i++) {
 		objects[i] = NULL;
 	}
+	bubble_count = 0;
+	char_index = 0;
 }
 
 ObjManager::~ObjManager()
@@ -17,7 +19,8 @@ ObjManager::~ObjManager()
 	}
 }
 
-int ObjManager::SetObj(int posX, int posY, int velX, int velY, int accX, int accY, int type)
+int ObjManager::SetObj(int posX, int posY, int velX, int velY, int accX, int accY, 
+	int type, char_ability ability)
 {
 	int index = -1;
 
@@ -33,6 +36,7 @@ int ObjManager::SetObj(int posX, int posY, int velX, int velY, int accX, int acc
 		objects[index]->SetPosition(posX, posY);
 		objects[index]->SetVelicity(velX, velY);
 		objects[index]->SetType(type);
+		objects[index]->SetAbility(ability);
 		return index;
 	}
 
@@ -73,9 +77,11 @@ void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 	for (int i = 0; i < MAX_OBJ_NUM; i++)	{
 		if(objects[i]) {
 			obj_info temp = objects[i]->returninfo();
+
 			if (temp.type >= Char_Idle && temp.type <= Char_Down) {
 				g_handle.HandleKeyEvent(i);
 				temp = objects[i]->returninfo();
+				char_index = i;
 
 				if (g_Interaction->Is_Key_UP()) {
 					MoveObject(i, temp.velX, temp.velY);
@@ -92,15 +98,22 @@ void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 				if (g_Interaction->Is_Key_RIGHT()) {
 					MoveObject(i, temp.velX, temp.velY);
 				}
+			}
 
+			if (temp.type == Non_Bubble) {
 				if (g_Interaction->Is_Key_BUBBLE()) {
-					// 'BUBBLE' 키가 눌려 있을 때의 동작
-				}
-
-				if (g_Interaction->Is_Key_ITEM()) {
-					// 'ITEM' 키가 눌려 있을 때의 동작
+					if (i == char_index + bubble_count + 1) {
+						bubble_count = (bubble_count + 1) % 5;
+						SetBubble(i, char_index);
+						break;
+					}
 				}
 			}
+
+			if (g_Interaction->Is_Key_ITEM()) {
+				// 'ITEM' 키가 눌려 있을 때의 동작
+			}
+			
 
 			objects[i]->SetVelicity(0, 0);
 		}

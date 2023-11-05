@@ -21,10 +21,10 @@ private:
 	ObjManager* m_ObjManager;
 
 	int Player1_Index;
-	int Player2_Index;
+	//int Player2_Index;
 
 	int Player1_bubble[5];
-	int Player2_bubble[5];
+	//int Player2_bubble[5];
 
 	int Background[15][15];
 };

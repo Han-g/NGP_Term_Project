@@ -27,27 +27,28 @@ void Render::Draw(HDC hdc, int x, int y, int type, HBITMAP hBit)
 	{	
 		// tiles -> 52, 52 | char -> 64, 76 | bubble 56, 54
 	// character
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 5:
-		BitBlt(hdc, x, y, 64, 76, memdc, 0, 0, SRCCOPY);
+	case Char_Idle:
+	case Char_Right:
+	case Char_Left:
+	case Char_Up:
+	case Char_Down:
+		BitBlt(hdc, x * 52, y * 52, 64, 76, memdc, 0, 0, SRCCOPY);
 		break;
 	
 	// bubble
-	case 6:	
-	case 7:
-		BitBlt(hdc, x, y, 56, 54, memdc, 0, 0, SRCCOPY);
+	case Bubble_Idle:
+	case Bubble_bomb:
+	case Non_Bubble:
+		BitBlt(hdc, x * 52, y * 52, 56, 54, memdc, 0, 0, SRCCOPY);
 		break;
 	
 	// background
-	case 10:
-	case 11:	
-	case 12:
-	case 13:
-	case 14:
-		BitBlt(hdc, x, y, 52, 52, memdc, 0, 0, SRCCOPY);
+	case BackGround:
+	case Bg_tile1:
+	case Bg_tile2:
+	case Bg_tile3:
+	case Bg_tile4:
+		BitBlt(hdc, x * 52, y * 52, 52, 52, memdc, 0, 0, SRCCOPY);
 		break;
 	default:
 		break;

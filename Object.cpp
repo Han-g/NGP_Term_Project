@@ -27,6 +27,21 @@ void Object::SetType(int t)
 	info.type = t;
 }
 
+void Object::SetAbility(char_ability ability)
+{
+	info.ablility = ability;
+}
+
+void Object::PutBubble()
+{
+	info.type = Bubble_Idle;
+}
+
+void Object::SetBubble(int len)
+{
+	info.ablility.bubble_len = len;
+}
+
 obj_info Object::returninfo()
 {
 	return info;

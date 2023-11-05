@@ -16,7 +16,7 @@ public:
 	int SetObj(	int posX, int posY,
 				int velX, int velY,
 				int accX, int accY,
-				int type );
+				int type, char_ability ability);
 	void SetObjVel(int index, int velX, int velY);
 	bool DelObj(int index);
 
@@ -37,7 +37,17 @@ public:
 		objects[index]->SetVelicity(velX, velY);
 	}
 
+	void SetBubble(int index, int char_num) {
+		//obj_info objVel = objects[index]->returninfo();
+		obj_info charVel = objects[char_num]->returninfo();
+
+		objects[index]->SetPosition(charVel.posX, charVel.posY);
+		objects[index]->SetBubble(charVel.ablility.bubble_len);
+		objects[index]->PutBubble();
+	}
+
 private:
 	Object* objects[MAX_OBJ_NUM];
+	int bubble_count, char_index;
 	//EventHandle* eventhandle;
 };

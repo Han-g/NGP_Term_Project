@@ -61,7 +61,7 @@ void EventHandle::HandleKeyEvent(int index)
 		}
 
 		if (g_Interaction->Is_Key_BUBBLE()) {
-
+			//objManager->SetBubble(index);
 		}
 		if (g_Interaction->Is_Key_ITEM()) {
 

@@ -13,6 +13,9 @@ public:
 	void SetPosition(int x, int y);
 	void SetVelicity(int x, int y);
 	void SetType(int t);
+	void SetAbility(char_ability ability);
+	void PutBubble();
+	void SetBubble(int len);
 
 	obj_info returninfo();
 

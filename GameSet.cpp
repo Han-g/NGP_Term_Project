@@ -4,33 +4,34 @@ GameSet::GameSet(HDC hdc)
 {
 	m_Renderer = new Render();
 	m_ObjManager = new ObjManager();
+	char_ability init = {0, 0};
 
 	for(int i = 0; i < 15; i++) {
 		for (int j = 0; j < 15; j++) {
 			Background[i][j] = m_ObjManager->SetObj(0 + (j * 52), 0 + (i * 52), 
-				0, 0, 0, 0, -1);
+				0, 0, 0, 0, -1, init);
 		}
 	}
 
 	Player1_Index = m_ObjManager->SetObj(0, 0,
 		0, 0,
 		0, 0,
-		Char_Idle);
-	Player2_Index = m_ObjManager->SetObj(50, 50,
+		Char_Idle, init);
+	/*Player2_Index = m_ObjManager->SetObj(50, 50,
 		0, 0,
 		0, 0,
-		Char_Idle);
+		Char_Idle);*/
 
 	for(int i = 0; i < 5; i++)
 	{
 		Player1_bubble[i] = m_ObjManager->SetObj(0, 0,
 			0, 0,
 			0, 0,
-			Bubble_Idle);
-		Player2_bubble[i] = m_ObjManager->SetObj(0, 0,
+			Non_Bubble, init);
+		/*Player2_bubble[i] = m_ObjManager->SetObj(0, 0,
 			0, 0,
 			0, 0,
-			Non_Obj);
+			Non_Bubble, init);*/
 	}
 
 }
