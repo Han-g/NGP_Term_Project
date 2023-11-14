@@ -7,6 +7,8 @@
 
 using namespace std;
 
+#define nPort 10400
+
 #pragma pack(1)
 struct PlayerStatus {
 

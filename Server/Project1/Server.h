@@ -10,7 +10,7 @@ extern ServerMain* server;
 
 extern void err_display(const char *b);
 
-int WSAGetLastError();
+extern int WSAGetLastError();
 
 const int Buf_lenth = 81;
 
