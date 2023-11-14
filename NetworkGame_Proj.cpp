@@ -7,7 +7,7 @@
 #include "EventHandle.h"
 #include "Global.h"
 
-#define SERVERIP   "127.0.0.1"
+//#define SERVERIP   "127.0.0.1"
 #define SERVERPORT 9000
 #define BUFSIZE    512
 
@@ -24,6 +24,7 @@ typedef struct box {
 GameSet* g_game = NULL;
 //EventHandle g_event = nullptr;
 
+DWORD g_Time = 0;
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
 
@@ -44,6 +45,8 @@ void RenderBackground(PAINTSTRUCT ps, HDC hdc) {
 void RenderScene(HDC hdc) {
     g_game->DrawAll(hdc, hInst);
 }
+
+DWORD WINAPI ClientMain(LPVOID arg);
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -74,13 +77,19 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
         return FALSE;
     }
 
+    HANDLE hThread = CreateThread(NULL, 0, ClientMain, NULL, 0, NULL);
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_NETWORKGAMEPROJ));
     
     MSG msg;
 
     int FrameX = GetSystemMetrics(SM_CXFRAME), FrameY = GetSystemMetrics(SM_CYFRAME), 
         Caption = GetSystemMetrics(SM_CYCAPTION);
-
+    
+    if (hThread == NULL)
+    {
+        // 스레드 생성 실패 처리
+        return FALSE;
+    }
 
     // 기본 메시지 루프입니다:
     while (GetMessage(&msg, nullptr, 0, 0))
@@ -90,8 +99,10 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        g_game->getTime(g_Time++);
     }
 
+    CloseHandle(hThread);
     return (int) msg.wParam;
 }
 
@@ -213,6 +224,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             RenderBackground(ps, hdc);
             RenderScene(hdc);
             EndPaint(hWnd, &ps);
+            ++g_Time;
         }
         break;
     case WM_DESTROY:
@@ -257,6 +269,8 @@ void DisplayError(const char* msg);
 DWORD WINAPI ClientMain(LPVOID arg);
 
 
+#include <cstdio>
+char* SERVERIP = (char*)"127.0.0.1";
 SOCKET sock; // 소켓
 char buf[BUFSIZE + 1]; // 데이터 송수신 버퍼
 HANDLE hReadEvent, hWriteEvent; // 이벤트
@@ -326,6 +340,10 @@ DWORD WINAPI ClientMain(LPVOID arg)
 {
     int retval;
 
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+        return 1;
+
     // 소켓 생성
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == INVALID_SOCKET) err_quit("socket()");
@@ -344,11 +362,11 @@ DWORD WINAPI ClientMain(LPVOID arg)
         WaitForSingleObject(hWriteEvent, INFINITE); // 쓰기 완료 대기
 
         // 문자열 길이가 0이면 보내지 않음
-        if (strlen(buf) == 0) {
-            EnableWindow(hSendButton, TRUE); // 보내기 버튼 활성화
-            SetEvent(hReadEvent); // 읽기 완료 알림
-            continue;
-        }
+        //if (strlen(buf) == 0) {
+        //    EnableWindow(hSendButton, TRUE); // 보내기 버튼 활성화
+        //    SetEvent(hReadEvent); // 읽기 완료 알림
+        //    continue;
+        //}
 
         // 데이터 보내기
         retval = send(sock, buf, (int)strlen(buf), 0);

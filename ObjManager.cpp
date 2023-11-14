@@ -6,6 +6,7 @@ ObjManager::ObjManager()
 		objects[i] = NULL;
 	}
 	bubble_count = 0;
+	bubble_Time = 0;
 	char_index = 0;
 }
 
@@ -110,6 +111,10 @@ void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 				}
 			}
 
+			if (temp.type == Bubble_Idle || temp.type == Bubble_bomb) {
+				BubblePop(i);
+			}
+
 			if (g_Interaction->Is_Key_ITEM()) {
 				// 'ITEM' 키가 눌려 있을 때의 동작
 			}
@@ -120,4 +125,9 @@ void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 	}
 
 	g_Interaction->KeyUp();
+}
+
+void ObjManager::getBubbleTime(DWORD Time)
+{
+	bubble_Time = Time;
 }

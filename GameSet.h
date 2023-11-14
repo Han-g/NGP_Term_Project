@@ -15,10 +15,12 @@ public:
 
 	void DrawAll(HDC hdc, HINSTANCE hInst);
 	void KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam);
+	void getTime(DWORD Time);
 
 private:
 	Render* m_Renderer;
 	ObjManager* m_ObjManager;
+	DWORD g_Time;
 
 	int Player1_Index;
 	//int Player2_Index;

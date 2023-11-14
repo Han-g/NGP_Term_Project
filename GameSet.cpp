@@ -4,6 +4,7 @@ GameSet::GameSet(HDC hdc)
 {
 	m_Renderer = new Render();
 	m_ObjManager = new ObjManager();
+	g_Time = 0;
 	char_ability init = {0, 0};
 
 	for(int i = 0; i < 15; i++) {
@@ -12,6 +13,9 @@ GameSet::GameSet(HDC hdc)
 				0, 0, 0, 0, -1, init);
 		}
 	}
+
+	// Forest
+
 
 	Player1_Index = m_ObjManager->SetObj(0, 0,
 		0, 0,
@@ -55,4 +59,10 @@ void GameSet::DrawAll(HDC hdc, HINSTANCE hInst)
 void GameSet::KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam)
 {
 	m_ObjManager->UpdateAll(g_Interaction, wParam);
+}
+
+void GameSet::getTime(DWORD Time)
+{
+	g_Time = Time;
+	m_ObjManager->getBubbleTime(g_Time);
 }

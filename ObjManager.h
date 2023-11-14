@@ -22,6 +22,7 @@ public:
 
 	void DrawObj(HDC hdc, HINSTANCE hInst, Render* renderer);
 	void UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam);
+	void getBubbleTime(DWORD Time);
 
 	void MoveObject(int index, int velX, int velY) {
 		obj_info objVel = objects[index]->returninfo();
@@ -46,8 +47,17 @@ public:
 		objects[index]->PutBubble();
 	}
 
+	void BubblePop(int index) {
+		if ((int)bubble_Time > 100) {
+			objects[index]->SetType(Non_Bubble);
+			bubble_Time = 0;
+			--bubble_count;
+		}
+	}
+
 private:
 	Object* objects[MAX_OBJ_NUM];
 	int bubble_count, char_index;
 	//EventHandle* eventhandle;
+	DWORD bubble_Time;
 };
