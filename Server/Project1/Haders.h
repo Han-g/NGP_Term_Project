@@ -1,7 +1,11 @@
 #pragma once
+#pragma comment(lib, "ws2_32")
+
 #include <winsock2.h>
 #include <iostream>
 #include <Windows.h>
+
+using namespace std;
 
 #pragma pack(1)
 struct PlayerStatus {

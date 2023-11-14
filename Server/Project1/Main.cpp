@@ -17,7 +17,7 @@ int main(void)
 	ZeroMemory(&serveraddr, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
 	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serveraddr.sin_port = htons(SERVERPORT);
+	serveraddr.sin_port = htons(9000);
 	retval = bind(listen_sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_display("bind()");
 
@@ -25,13 +25,13 @@ int main(void)
 	retval = listen(listen_sock, SOMAXCONN);
 	if (retval == SOCKET_ERROR) err_display("listen()");
 
-	//게임 컨트롤 쓰레드 생성
+	//오브젝트 쓰레드 생성
 	HANDLE hThread;
-	server = new ServerControl();
+	server = new ServerMain();
 
-	hThread = CreateThread(NULL, 0, GameControlThread, NULL, 0, NULL);
+	hThread = CreateThread(NULL, 0, ObjectThread, NULL, 0, NULL);
 	if (hThread == NULL) {
-		cout << "게임컨트롤 쓰레드 생성 실패" << endl;
+		cout << "오브젝트 쓰레드 생성 실패" << endl;
 		return 0;
 	}
 	else {
@@ -48,26 +48,28 @@ int main(void)
 		addrlen = sizeof(clientaddr);
 		*client_sock = accept(listen_sock, (SOCKADDR*)&clientaddr, &addrlen);
 
-		if (!server->IsClientFull()) {
+		if (!server->ClientFullCheck()) {
 			closesocket(*client_sock);
-			continue; //클라이언트가 꽉차면 스레드 생성 안함
+			continue; 
 		}
+		//클라이언트 가득 찼으면 멈춤
 
 		if (*client_sock == INVALID_SOCKET) {
 			err_display("accept()");
 			break;
 		}
 		// 접속한 클라이언트 정보 출력
+
 		printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",
 			inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
 
 		//클라이언트 초기화
-		ClientControl* client = new ClientControl(client_sock, server->getNumOfClient());
+		ClientMain* client = new ClientMain(client_sock, server->ClientNum());
 
 		hThread = CreateThread(NULL, 0, ClientThread, client, 0, NULL);
 
 		if (hThread == NULL) {
-			//closesocket(client_sock);
+
 			delete client;
 		}
 		else {

@@ -5,7 +5,12 @@ DWORD WINAPI ClientThread(LPVOID arg);
 DWORD WINAPI ObjectThread(LPVOID arg);
 
 class ServerMain;
+
 extern ServerMain* server;
+
+extern void err_display(const char *b);
+
+int WSAGetLastError();
 
 const int Buf_lenth = 81;
 
@@ -31,6 +36,8 @@ public:
 	bool ClientFullCheck();
 
 	bool WaitEventCheck();
+
+	int ClientNum();
 };
 
 
