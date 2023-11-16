@@ -272,7 +272,7 @@ DWORD WINAPI ClientMain(LPVOID arg);
 #include <cstdio>
 char* SERVERIP = (char*)"127.0.0.1";
 SOCKET sock; // 소켓
-char buf[BUFSIZE + 1]; // 데이터 송수신 버퍼
+Send_datatype buf[BUFSIZE + 1]; // 데이터 송수신 버퍼
 HANDLE hReadEvent, hWriteEvent; // 이벤트
 HWND hSendButton; // 보내기 버튼
 HWND hEdit1, hEdit2; // 에디트 컨트롤
@@ -369,7 +369,7 @@ DWORD WINAPI ClientMain(LPVOID arg)
         //}
 
         // 데이터 보내기
-        retval = send(sock, buf, (int)strlen(buf), 0);
+        retval = send(sock, (char*)buf, sizeof(buf), 0);
         if (retval == SOCKET_ERROR) {
             DisplayError("send()");
             break;
@@ -377,7 +377,7 @@ DWORD WINAPI ClientMain(LPVOID arg)
         DisplayText("[TCP 클라이언트] %d바이트를 보냈습니다.\r\n", retval);
 
         // 데이터 받기
-        retval = recv(sock, buf, retval, MSG_WAITALL);
+        retval = recv(sock, (char*)buf, retval, MSG_WAITALL);
         if (retval == SOCKET_ERROR) {
             DisplayError("recv()");
             break;
@@ -386,7 +386,7 @@ DWORD WINAPI ClientMain(LPVOID arg)
             break;
 
         // 받은 데이터 출력
-        buf[retval] = '\0';
+        //buf[retval] = '\0';
         DisplayText("[TCP 클라이언트] %d바이트를 받았습니다.\r\n", retval);
         DisplayText("[받은 데이터] %s\r\n", buf);
 

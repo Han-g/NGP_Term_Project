@@ -47,3 +47,7 @@ typedef struct obj_info {
 	int obj_status;
 	char_ability ablility;
 } obj_info;
+
+typedef struct Send_datatype {
+	obj_info object_info;
+} Send_datatype;

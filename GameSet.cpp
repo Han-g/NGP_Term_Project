@@ -66,3 +66,8 @@ void GameSet::getTime(DWORD Time)
 	g_Time = Time;
 	m_ObjManager->getBubbleTime(g_Time);
 }
+
+void GameSet::getObjINFO()
+{
+
+}

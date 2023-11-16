@@ -16,6 +16,7 @@ public:
 	void DrawAll(HDC hdc, HINSTANCE hInst);
 	void KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam);
 	void getTime(DWORD Time);
+	void getObjINFO();
 
 private:
 	Render* m_Renderer;
