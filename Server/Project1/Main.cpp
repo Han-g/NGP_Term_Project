@@ -1,22 +1,29 @@
 #include "Server.h"
 #include "Common.h"
-#include "Global.h"
 
 #define BUFSIZE 512
 Send_datatype buf[BUFSIZE+1];
+ClientMain* client;
 
 DWORD WINAPI ObjectThread(LPVOID arg)
 {
-	while (1)
-	{
+	client = static_cast<ClientMain*>(arg);
+
+	while (1) {
 		ResetEvent(InteractiveEvent);
+
+		// 메시지 큐 확인
+		if (client) {
+			client->ProcessMessages();
+		}
 
 		server->ObjectCollision();
 		server->KeyCheckClass();
 
 		SetEvent(InteractiveEvent);
-	}return 0;
-
+	}
+	
+	return 0;
 }
 
 DWORD WINAPI ClientThread(LPVOID arg)
@@ -25,7 +32,8 @@ DWORD WINAPI ClientThread(LPVOID arg)
 
 	//ClientMain* thisPoint = (ClientMain*)arg;
 	//int ClientNum = thisPoint->getClientNum();
-	//DWORD status;
+	DWORD status;
+
 
 	while (1)
 	{
@@ -34,8 +42,9 @@ DWORD WINAPI ClientThread(LPVOID arg)
 			err_display("recv()");
 			break;
 		}
+		
+		// 클라이언트가 연결을 종료한 경우
 		else if (retval == 0) {
-			// 클라이언트가 연결을 종료한 경우
 			break;
 		}
 
@@ -45,8 +54,18 @@ DWORD WINAPI ClientThread(LPVOID arg)
 		// ObjectThread에서 데이터 처리 이벤트를 기다림
 		WaitForSingleObject(ClientRecvEvent[1], INFINITE);
 
+		// 메시지 구성
+		EventQueue message;
+		message.msgType = 1; // 예: 메시지 종류 식별을 위한 타입 설정
+
+		// 메시지에 필요한 데이터 설정
+		client->getBuffer(buf);			// 버퍼값 받아오기
+		client->returnBuffer(buf);		// 처리 후 버퍼 저장
+		client->EnqueueMsg(message);	// 메시지 큐에 메시지 추가
+
 		// 클라이언트로 데이터 보내기 (원하는 처리에 따라 수정)
-		// send(client->getClientSocket(), send_buf, send_buf_size, 0)
+		send(client->getClientSocket(), (char*)buf, sizeof(Send_datatype), 0);
+		WaitForSingleObject(InteractiveEvent, INFINITE);
 	}
 
 	return 0;
@@ -86,6 +105,7 @@ int main(void)
 	HANDLE hThread; 
 	server = new ServerMain(); //서버용 스레드 생성
 
+	ClientMain* clientInstance = new ClientMain(INVALID_SOCKET, 0);
 	hThread = CreateThread(NULL, 0, ObjectThread, NULL, 0, NULL); //스레드 생성
 	
 	//쓰레드 생성 이 안되었을 경우 오류 메세지 발송, 생성이 잘 되었으면 핸들 닫기
@@ -131,14 +151,13 @@ int main(void)
 			addr, ntohs(clientaddr.sin_port));
 
 		//클라이언트 초기화
-		ClientMain* client = new ClientMain(&client_sock, server->getClientNum());
+		ClientMain* client = new ClientMain(client_sock, server->getClientNum());
 
 		hThread = CreateThread(NULL, 0, ClientThread, client, 0, NULL);
 
 		if (hThread == NULL) {
 			delete client;
-		}
-		
+		}		
 
 		else {
 			CloseHandle(hThread);

@@ -369,6 +369,7 @@ DWORD WINAPI ClientMain(LPVOID arg)
         //}
 
         // 데이터 보내기
+        buf[0] = { 1,1,1,1,1,1,{1,1} };
         retval = send(sock, (char*)buf, sizeof(buf), 0);
         if (retval == SOCKET_ERROR) {
             DisplayError("send()");

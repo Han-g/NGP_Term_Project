@@ -14,6 +14,10 @@
 #include <ctype.h>
 #include <time.h>
 #include <math.h>
+#include <fstream>
+#include <queue>
+#include <mutex>
+
 
 // Object status
 #define Non_Obj		-1
@@ -52,3 +56,8 @@ typedef struct Send_datatype {
 	obj_info object_info;
 	WPARAM wParam;
 } Send_datatype;
+
+struct EventQueue {
+	Send_datatype data;
+	int msgType;
+};
