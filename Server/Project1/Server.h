@@ -5,27 +5,31 @@
 DWORD WINAPI ClientThread(LPVOID arg);
 DWORD WINAPI ObjectThread(LPVOID arg);
 
-class ServerMain;
+class ObjectMain;
 
-extern ServerMain* server;
+extern ObjectMain* server;
 extern HANDLE ClientRecvEvent[2];
 extern HANDLE InteractiveEvent;
+extern std::chrono::time_point<std::chrono::system_clock> gameTime;;
 
 //extern int WSAGetLastError();
 
 const int Buf_lenth = 512;
 
-
-class ClientMain
+class ServerMain
 {
 public:
-	ClientMain(SOCKET recv_socket, int i);
-	~ClientMain();
+	ServerMain(SOCKET recv_socket, int i);
+	~ServerMain();
 
 	void EnqueueMsg(const EventQueue& msg);
 	void ProcessMessages(); 
 	void getBuffer(Send_datatype* buf);
 	void returnBuffer(Send_datatype* buf);
+	double getTime();
+
+	void GameStart();
+	void EventLoop();
 
 	int getClientNum() const { return iClient; }
 	SOCKET getClientSocket();
@@ -38,20 +42,22 @@ private:
 
 	int iClient;
 
+	std::chrono::time_point<std::chrono::system_clock> gameStartTime;
 	std::queue<EventQueue> messageQueue;
 	HANDLE msgEventQueue;
 };
 
-class ServerMain
+class ObjectMain
 {
 public:
-	ServerMain();
-	~ServerMain();
+	ObjectMain();
+	~ObjectMain();
 
 	void GameServer();
 	void DisconnectClient(int iClient);
-	void ObjectCollision();
 	void KeyCheckClass();
+	void ObjectCollision();
+	void updateTime(std::chrono::time_point<std::chrono::system_clock> gameTime);
 
 	bool ClientFullCheck();
 	bool WaitEventCheck();
@@ -61,6 +67,6 @@ public:
 private:
 	int ClientNum;
 
-	WORD* recv_Buf[2];
-	char send_Buf[Buf_lenth];
+	Send_datatype recv_Buf[Buf_lenth];
+	Send_datatype send_Buf[Buf_lenth];
 };

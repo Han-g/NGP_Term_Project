@@ -3,11 +3,11 @@
 
 #define BUFSIZE 512
 Send_datatype buf[BUFSIZE+1];
-ClientMain* client;
+ServerMain* client;
 
 DWORD WINAPI ObjectThread(LPVOID arg)
 {
-	client = static_cast<ClientMain*>(arg);
+	client = static_cast<ServerMain*>(arg);
 
 	while (1) {
 		ResetEvent(InteractiveEvent);
@@ -28,10 +28,8 @@ DWORD WINAPI ObjectThread(LPVOID arg)
 
 DWORD WINAPI ClientThread(LPVOID arg)
 {
-	ClientMain* client = static_cast<ClientMain*>(arg);
-
-	//ClientMain* thisPoint = (ClientMain*)arg;
-	//int ClientNum = thisPoint->getClientNum();
+	ServerMain* client = static_cast<ServerMain*>(arg);
+	//int ClientNum = client->getClientNum();
 	DWORD status;
 
 
@@ -81,7 +79,6 @@ int main(void)
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) 
 		return 1;
 
-
 	// 소켓 생성이 잘 되었는지 오류 확인
 	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (listen_sock == INVALID_SOCKET) err_display("socket()"); 
@@ -101,22 +98,9 @@ int main(void)
 	if (retval == SOCKET_ERROR) err_display("listen()");	// 연결 대기상태의 오류 확인
 
 
-	//오브젝트 쓰레드 생성
-	HANDLE hThread; 
-	server = new ServerMain(); //서버용 스레드 생성
+	//서버용 스레드 생성
+	server = new ObjectMain();
 
-	ClientMain* clientInstance = new ClientMain(INVALID_SOCKET, 0);
-	hThread = CreateThread(NULL, 0, ObjectThread, NULL, 0, NULL); //스레드 생성
-	
-	//쓰레드 생성 이 안되었을 경우 오류 메세지 발송, 생성이 잘 되었으면 핸들 닫기
-	if (hThread == NULL) {
-		cout << "오브젝트 스레드 생성 실패" << endl;
-		return 0;
-	}	
-	else {
-		CloseHandle(hThread);
-	}
-	
 	// 이벤트 초기화
 	ClientRecvEvent[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
 	ClientRecvEvent[1] = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -150,15 +134,29 @@ int main(void)
 		printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",
 			addr, ntohs(clientaddr.sin_port));
 
-		//클라이언트 초기화
-		ClientMain* client = new ClientMain(client_sock, server->getClientNum());
+		//스레드 생성
+		HANDLE hThread;
 
+		//클라이언트 초기화
+		ServerMain* client = new ServerMain(client_sock, server->getClientNum());
+		
 		hThread = CreateThread(NULL, 0, ClientThread, client, 0, NULL);
 
 		if (hThread == NULL) {
 			delete client;
-		}		
+		}	
+		else {
+			CloseHandle(hThread);
+		}	
+		
+		ServerMain* clientInstance = new ServerMain(INVALID_SOCKET, 0);
+		//오브젝트 스레드 생성
+		hThread = CreateThread(NULL, 0, ObjectThread, NULL, 0, NULL); 
 
+		if (hThread == NULL) {
+			cout << "오브젝트 스레드 생성 실패" << endl;
+			return 0;
+		}
 		else {
 			CloseHandle(hThread);
 		}

@@ -16,7 +16,8 @@
 #include <math.h>
 #include <fstream>
 #include <queue>
-#include <mutex>
+#include <chrono>
+#include <ctime>
 
 
 // Object status
@@ -55,6 +56,7 @@ typedef struct obj_info {
 typedef struct Send_datatype {
 	obj_info object_info;
 	WPARAM wParam;
+	double GameTime;
 } Send_datatype;
 
 struct EventQueue {

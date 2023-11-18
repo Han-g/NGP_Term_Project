@@ -1,11 +1,13 @@
 #include "Server.h"
 
-ServerMain* server;
+ObjectMain* server;
 HANDLE ClientRecvEvent[2];
 HANDLE InteractiveEvent;
 
+std::chrono::time_point<std::chrono::system_clock> gameTime;
+
 // ServerThread
-ClientMain::ClientMain(SOCKET recv_socket, int i)
+ServerMain::ServerMain(SOCKET recv_socket, int i)
 {
 	memset(recv_Buf, 0, sizeof(recv_Buf));
 	memset(send_Buf, 0, sizeof(send_Buf));
@@ -13,21 +15,23 @@ ClientMain::ClientMain(SOCKET recv_socket, int i)
 	iClient = i;
 
 	msgEventQueue = CreateEvent(NULL, FALSE, FALSE, NULL);
+	gameStartTime = std::chrono::system_clock::now();
+	gameTime = gameStartTime;
 }
 
-ClientMain::~ClientMain()
+ServerMain::~ServerMain()
 {
 	CloseHandle(msgEventQueue);
 }
 
-void ClientMain::EnqueueMsg(const EventQueue& msg)
+void ServerMain::EnqueueMsg(const EventQueue& msg)
 {
 	// 메시지 큐에 메시지 추가
 	SetEvent(msgEventQueue);
 	messageQueue.push(msg);
 }
 
-void ClientMain::ProcessMessages()
+void ServerMain::ProcessMessages()
 {
 	WaitForSingleObject(msgEventQueue, INFINITE);
 
@@ -41,63 +45,86 @@ void ClientMain::ProcessMessages()
 	}
 }
 
-void ClientMain::getBuffer(Send_datatype* buf)
+void ServerMain::getBuffer(Send_datatype* buf)
 {
 	memcpy(recv_Buf, &buf, sizeof(Send_datatype));
 	memcpy(send_Buf, recv_Buf, sizeof(Send_datatype));
 }
 
-void ClientMain::returnBuffer(Send_datatype* buf)
+void ServerMain::returnBuffer(Send_datatype* buf)
 {
 	memcpy(buf, send_Buf, sizeof(Send_datatype));
 }
 
-SOCKET ClientMain::getClientSocket()
+double ServerMain::getTime()
+{
+	auto currentTime = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsedTime = currentTime - gameStartTime;
+
+	return elapsedTime.count();
+}
+
+void ServerMain::GameStart()
+{
+	EventLoop();
+}
+
+void ServerMain::EventLoop()
+{
+
+}
+
+SOCKET ServerMain::getClientSocket()
 {
 	return sockets;
 }
 
 
 // ObjectThread
-ServerMain::ServerMain()
+ObjectMain::ObjectMain()
 {
-	//ClientNum = 0;
-	memset(recv_Buf, 0, sizeof(WORD*) * 2);
+	ClientNum = 0;
+	memset(recv_Buf, 0, sizeof(Send_datatype));
+	memset(send_Buf, 0, sizeof(Send_datatype));
+}
 
+ObjectMain::~ObjectMain()
+{
 
 }
 
-ServerMain::~ServerMain()
+void ObjectMain::GameServer()
 {
 }
 
-void ServerMain::GameServer()
+void ObjectMain::DisconnectClient(int iClient)
 {
 }
 
-void ServerMain::DisconnectClient(int iClient)
+void ObjectMain::ObjectCollision()
 {
 }
 
-void ServerMain::ObjectCollision()
+void ObjectMain::updateTime(std::chrono::time_point<std::chrono::system_clock> gameTime)
+{
+
+}
+
+void ObjectMain::KeyCheckClass()
 {
 }
 
-void ServerMain::KeyCheckClass()
-{
-}
-
-bool ServerMain::ClientFullCheck()
+bool ObjectMain::ClientFullCheck()
 {
 	return false;
 }
 
-bool ServerMain::WaitEventCheck()
+bool ObjectMain::WaitEventCheck()
 {
 	return false;
 }
 
-int ServerMain::getClientNum()
+int ObjectMain::getClientNum()
 {
-	return ClientNum;
+	return ClientNum++;
 }

@@ -15,6 +15,11 @@
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
+HANDLE hMsgThread;                              // 통신 스레드
+DWORD dwMsgThreadID;                            // 통신 스레드 ID
+
+// 소켓 통신 스레드 함수
+DWORD WINAPI ClientMain(LPVOID arg);
 
 typedef struct box {
     int left, top, right, bottom;
@@ -27,6 +32,31 @@ GameSet* g_game = NULL;
 DWORD g_Time = 0;
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
+
+void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
+    if (bufSize < sizeof(Send_datatype)) {
+        return;
+    }
+
+    // Send_datatype 구조체의 멤버들을 바이트로 복사
+    std::memcpy(buf, &data, sizeof(Send_datatype));
+}
+
+void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
+    if (bufSize < sizeof(Send_datatype)) {
+        return;
+    }
+
+    // 바이트를 Send_datatype 구조체로 복사
+    std::memcpy(&data, buf, sizeof(Send_datatype));
+}
+
+void CommuicateThread() {
+    hMsgThread = CreateThread(NULL, 0, ClientMain, NULL, 0, &dwMsgThreadID);
+    if (hMsgThread == NULL) {
+        delete hMsgThread;
+    }
+}
 
 void RenderBackground(PAINTSTRUCT ps, HDC hdc) {
     static HBITMAP hBit;
@@ -46,7 +76,6 @@ void RenderScene(HDC hdc) {
     g_game->DrawAll(hdc, hInst);
 }
 
-DWORD WINAPI ClientMain(LPVOID arg);
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -77,19 +106,12 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HANDLE hThread = CreateThread(NULL, 0, ClientMain, NULL, 0, NULL);
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_NETWORKGAMEPROJ));
     
     MSG msg;
 
     int FrameX = GetSystemMetrics(SM_CXFRAME), FrameY = GetSystemMetrics(SM_CYFRAME), 
         Caption = GetSystemMetrics(SM_CYCAPTION);
-    
-    if (hThread == NULL)
-    {
-        // 스레드 생성 실패 처리
-        return FALSE;
-    }
 
     // 기본 메시지 루프입니다:
     while (GetMessage(&msg, nullptr, 0, 0))
@@ -102,7 +124,6 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
         g_game->getTime(g_Time++);
     }
 
-    CloseHandle(hThread);
     return (int) msg.wParam;
 }
 
@@ -194,9 +215,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hWnd, &ps);
         g_game = new GameSet(hdc);
         g_Interaction = new Obj_Interaction;
+        CommuicateThread();
         break;
     case WM_KEYDOWN:
         g_game->KeyInput(g_Interaction, wParam);
+        CommuicateThread();
         break;
     case WM_KEYUP:
         InvalidateRect(hWnd, NULL, TRUE);
@@ -228,6 +251,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+        TerminateThread(hMsgThread, 0);
+        WaitForSingleObject(hMsgThread, INFINITE);
+        CloseHandle(hMsgThread);
+
         delete g_Interaction;
         PostQuitMessage(0);
         break;
@@ -265,14 +292,11 @@ INT_PTR CALLBACK DlgProc(HWND, UINT, WPARAM, LPARAM);
 void DisplayText(const char* fmt, ...);
 // 소켓 함수 오류 출력
 void DisplayError(const char* msg);
-// 소켓 통신 스레드 함수
-DWORD WINAPI ClientMain(LPVOID arg);
 
 
-#include <cstdio>
 char* SERVERIP = (char*)"127.0.0.1";
 SOCKET sock; // 소켓
-Send_datatype buf[BUFSIZE + 1]; // 데이터 송수신 버퍼
+Send_datatype buf; // 데이터 송수신 버퍼
 HANDLE hReadEvent, hWriteEvent; // 이벤트
 HWND hSendButton; // 보내기 버튼
 HWND hEdit1, hEdit2; // 에디트 컨트롤
@@ -369,8 +393,11 @@ DWORD WINAPI ClientMain(LPVOID arg)
         //}
 
         // 데이터 보내기
-        buf[0] = { 1,1,1,1,1,1,{1,1} };
-        retval = send(sock, (char*)buf, sizeof(buf), 0);
+        g_game->getObjINFO(&buf);
+        char buffer[BUFSIZE];
+        Serialize(&buf, buffer, sizeof(Send_datatype));
+
+        retval = send(sock, buffer, sizeof(Send_datatype), 0);
         if (retval == SOCKET_ERROR) {
             DisplayError("send()");
             break;
@@ -378,7 +405,9 @@ DWORD WINAPI ClientMain(LPVOID arg)
         DisplayText("[TCP 클라이언트] %d바이트를 보냈습니다.\r\n", retval);
 
         // 데이터 받기
-        retval = recv(sock, (char*)buf, retval, MSG_WAITALL);
+        retval = recv(sock, buffer, retval, MSG_WAITALL);
+        DeSerialize(&buf, buffer, sizeof(Send_datatype));
+
         if (retval == SOCKET_ERROR) {
             DisplayError("recv()");
             break;

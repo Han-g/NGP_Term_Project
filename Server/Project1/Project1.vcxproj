@@ -129,12 +129,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
+    <ClInclude Include="EventHandle.h" />
     <ClInclude Include="Global.h" />
     <ClInclude Include="Haders.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Server.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="EventHandle.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Server.cpp" />
   </ItemGroup>

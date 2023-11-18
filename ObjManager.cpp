@@ -127,6 +127,19 @@ void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 	g_Interaction->KeyUp();
 }
 
+obj_info* ObjManager::getObj_Info()
+{
+	obj_info* obj_infos = new obj_info[MAX_OBJ_NUM];
+
+	for (int i = 0; i < MAX_OBJ_NUM; ++i) {
+		if (objects[i]) {
+			obj_infos[i] = objects[i]->returninfo();
+		}
+	}
+
+	return obj_infos;
+}
+
 void ObjManager::getBubbleTime(DWORD Time)
 {
 	bubble_Time = Time;

@@ -16,12 +16,13 @@ public:
 	void DrawAll(HDC hdc, HINSTANCE hInst);
 	void KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam);
 	void getTime(DWORD Time);
-	void getObjINFO();
+	void getObjINFO(Send_datatype* buf);
 
 private:
 	Render* m_Renderer;
 	ObjManager* m_ObjManager;
 	DWORD g_Time;
+	WPARAM Temp_wParam;
 
 	int Player1_Index;
 	//int Player2_Index;

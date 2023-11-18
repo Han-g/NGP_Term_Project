@@ -1,19 +1,22 @@
 #pragma once
 
 #define MAX_LOADSTRING	100
-#define MAX_OBJ_NUM		2000
+#define MAX_OBJ_NUM		512
 #define MAX_BUBBLE_NUM	5
 
 #define window_size_w	1040
 #define window_size_d	780
 
 #include <Windows.h>
+#include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
 #include <tchar.h>
 #include <ctype.h>
 #include <time.h>
 #include <math.h>
+#include <cstdio>
+#include <vector>
 
 // Object status
 #define Non_Obj		-1
@@ -49,6 +52,7 @@ typedef struct obj_info {
 } obj_info;
 
 typedef struct Send_datatype {
-	obj_info object_info;
+	std::vector<obj_info> object_info;
 	WPARAM wParam;
+	double GameTime;
 } Send_datatype;

@@ -58,6 +58,7 @@ void GameSet::DrawAll(HDC hdc, HINSTANCE hInst)
 
 void GameSet::KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam)
 {
+	Temp_wParam = wParam;
 	m_ObjManager->UpdateAll(g_Interaction, wParam);
 }
 
@@ -67,7 +68,11 @@ void GameSet::getTime(DWORD Time)
 	m_ObjManager->getBubbleTime(g_Time);
 }
 
-void GameSet::getObjINFO()
+void GameSet::getObjINFO(Send_datatype* buf)
 {
-
+	obj_info* temp = m_ObjManager->getObj_Info();
+	for (int i = 0; i < MAX_OBJ_NUM; i++) {
+		if(temp[i].posX)
+			buf->object_info.push_back(temp[i]);
+	}
 }

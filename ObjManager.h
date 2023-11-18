@@ -22,6 +22,7 @@ public:
 
 	void DrawObj(HDC hdc, HINSTANCE hInst, Render* renderer);
 	void UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam);
+	obj_info* getObj_Info();
 	void getBubbleTime(DWORD Time);
 
 	void MoveObject(int index, int velX, int velY) {
