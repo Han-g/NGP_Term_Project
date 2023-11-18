@@ -5,6 +5,7 @@ GameSet::GameSet(HDC hdc)
 	m_Renderer = new Render();
 	m_ObjManager = new ObjManager();
 	g_Time = 0;
+	key_Input = 0;
 	char_ability init = {0, 0};
 
 	for(int i = 0; i < 15; i++) {
@@ -58,8 +59,13 @@ void GameSet::DrawAll(HDC hdc, HINSTANCE hInst)
 
 void GameSet::KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam)
 {
-	Temp_wParam = wParam;
-	m_ObjManager->UpdateAll(g_Interaction, wParam);
+	//m_ObjManager->UpdateAll(g_Interaction, wParam);
+	key_Input = g_Interaction->returnInput();
+}
+
+const int GameSet::Key_return()
+{
+	return key_Input;
 }
 
 void GameSet::getTime(DWORD Time)

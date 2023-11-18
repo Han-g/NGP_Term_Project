@@ -1,6 +1,7 @@
 #pragma once
 #include "Haders.h"
 #include "Global.h"
+#include "EventHandle.h"
 
 DWORD WINAPI ClientThread(LPVOID arg);
 DWORD WINAPI ObjectThread(LPVOID arg);
@@ -24,8 +25,8 @@ public:
 
 	void EnqueueMsg(const EventQueue& msg);
 	void ProcessMessages(); 
-	void getBuffer(Send_datatype* buf);
-	void returnBuffer(Send_datatype* buf);
+	void getBuffer(Send_datatype buf);
+	void returnBuffer(Send_datatype buf);
 	double getTime();
 
 	void GameStart();
@@ -35,8 +36,8 @@ public:
 	SOCKET getClientSocket();
 
 private:
-	Send_datatype recv_Buf[Buf_lenth];
-	Send_datatype send_Buf[Buf_lenth];
+	Send_datatype recv_Buf;
+	Send_datatype send_Buf;
 
 	SOCKET sockets;
 
@@ -53,8 +54,9 @@ public:
 	ObjectMain();
 	~ObjectMain();
 
-	void GameServer();
+	void GameServer(Send_datatype data);
 	void DisconnectClient(int iClient);
+
 	void KeyCheckClass();
 	void ObjectCollision();
 	void updateTime(std::chrono::time_point<std::chrono::system_clock> gameTime);
@@ -67,6 +69,18 @@ public:
 private:
 	int ClientNum;
 
-	Send_datatype recv_Buf[Buf_lenth];
-	Send_datatype send_Buf[Buf_lenth];
+	std::vector<obj_info> object_vector;
+	int wParam;
+
+	EventHandle* events;
+
+	bool m_Key_UP;
+	bool m_Key_DOWN;
+	bool m_Key_LEFT;
+	bool m_Key_RIGHT;
+	bool m_Key_BUBBLE;
+	bool m_Key_ITEM;
+
+	Send_datatype recv_Buf;
+	Send_datatype send_Buf;
 };

@@ -2,8 +2,32 @@
 #include "Common.h"
 
 #define BUFSIZE 512
-Send_datatype buf[BUFSIZE+1];
+Send_datatype buf;
 ServerMain* client;
+
+void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
+	if (bufSize < sizeof(Send_datatype)) {
+		return;
+	}
+
+	// Send_datatype 구조체의 나머지 멤버들을 먼저 복사
+	std::memcpy(buf, data, sizeof(WPARAM) + sizeof(double));
+
+	// object_info의 크기와 데이터를 복사
+	size_t objInfoSize = data->object_info.size() * sizeof(obj_info);
+	if (bufSize >= sizeof(Send_datatype) + objInfoSize) {
+		std::memcpy(buf + sizeof(Send_datatype), data->object_info.data(), objInfoSize);
+	}
+}
+
+void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
+	if (bufSize < sizeof(Send_datatype)) {
+		return;
+	}
+
+	// 바이트를 Send_datatype 구조체로 복사
+	std::memcpy(&data, buf, sizeof(Send_datatype));
+}
 
 DWORD WINAPI ObjectThread(LPVOID arg)
 {
@@ -17,6 +41,7 @@ DWORD WINAPI ObjectThread(LPVOID arg)
 			client->ProcessMessages();
 		}
 
+		server->GameServer(buf);
 		server->ObjectCollision();
 		server->KeyCheckClass();
 
@@ -62,7 +87,7 @@ DWORD WINAPI ClientThread(LPVOID arg)
 		client->EnqueueMsg(message);	// 메시지 큐에 메시지 추가
 
 		// 클라이언트로 데이터 보내기 (원하는 처리에 따라 수정)
-		send(client->getClientSocket(), (char*)buf, sizeof(Send_datatype), 0);
+		send(client->getClientSocket(), (char*)&buf, sizeof(Send_datatype), 0);
 		WaitForSingleObject(InteractiveEvent, INFINITE);
 	}
 

@@ -99,8 +99,8 @@ bool Obj_Interaction::Is_Key_ITEM()
 	return m_Key_ITEM;
 }
 
-WPARAM Obj_Interaction::returnInput()
+int Obj_Interaction::returnInput()
 {
-	return index;
+	return (int)index;
 }
 

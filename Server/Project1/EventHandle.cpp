@@ -1,6 +1,6 @@
 #include "EventHandle.h"
 
-EventHandle::EventHandle()
+EventHandle::EventHandle(Send_datatype data)
 {
 
 }

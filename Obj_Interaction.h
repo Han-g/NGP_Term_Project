@@ -19,7 +19,7 @@ public:
 	bool Is_Key_BUBBLE();
 	bool Is_Key_ITEM();
 
-	WPARAM returnInput();
+	int returnInput();
 
 private:
 	WPARAM index;

@@ -38,8 +38,14 @@ void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
         return;
     }
 
-    // Send_datatype 구조체의 멤버들을 바이트로 복사
-    std::memcpy(buf, &data, sizeof(Send_datatype));
+    // Send_datatype 구조체의 나머지 멤버들을 먼저 복사
+    std::memcpy(buf, data, sizeof(WPARAM) + sizeof(double));
+
+    // object_info의 크기와 데이터를 복사
+    size_t objInfoSize = data->object_info.size() * sizeof(obj_info);
+    if (bufSize >= sizeof(Send_datatype) + objInfoSize) {
+        std::memcpy(buf + sizeof(Send_datatype), data->object_info.data(), objInfoSize);
+    }
 }
 
 void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
@@ -394,10 +400,12 @@ DWORD WINAPI ClientMain(LPVOID arg)
 
         // 데이터 보내기
         g_game->getObjINFO(&buf);
+        buf.wParam = g_game->Key_return();
         char buffer[BUFSIZE];
         Serialize(&buf, buffer, sizeof(Send_datatype));
 
-        retval = send(sock, buffer, sizeof(Send_datatype), 0);
+        //retval = send(sock, buffer, sizeof(Send_datatype), 0);
+        retval = send(sock, (char*)&buf, sizeof(Send_datatype), 0);
         if (retval == SOCKET_ERROR) {
             DisplayError("send()");
             break;
@@ -405,7 +413,8 @@ DWORD WINAPI ClientMain(LPVOID arg)
         DisplayText("[TCP 클라이언트] %d바이트를 보냈습니다.\r\n", retval);
 
         // 데이터 받기
-        retval = recv(sock, buffer, retval, MSG_WAITALL);
+        //retval = recv(sock, buffer, retval, MSG_WAITALL);
+        retval = recv(sock, (char*)&buf, retval, MSG_WAITALL);
         DeSerialize(&buf, buffer, sizeof(Send_datatype));
 
         if (retval == SOCKET_ERROR) {
