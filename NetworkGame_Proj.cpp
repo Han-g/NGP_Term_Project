@@ -44,7 +44,7 @@ void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
     }
 
     // 데이터 복사
-    std::memcpy(buf, &data->object_info, sizeof(int));
+    std::memcpy(buf, &data->wParam, sizeof(int));
     buf += sizeof(int);
 
     std::memcpy(buf, &data->GameTime, sizeof(double));
@@ -54,12 +54,22 @@ void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 }
 
 void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
-    if (bufSize < sizeof(Send_datatype)) {
+    if (bufSize < sizeof(int) + sizeof(double)) {
+        std::cerr << "Buffer size is too small for deserialization!" << std::endl;
         return;
     }
 
-    // 바이트를 Send_datatype 구조체로 복사
-    std::memcpy(&data, buf, sizeof(Send_datatype));
+    // 데이터 복사
+    std::memcpy(&data->wParam, buf, sizeof(int));
+    buf += sizeof(int);
+
+    std::memcpy(&data->GameTime, buf, sizeof(double));
+    buf += sizeof(double);
+
+    // obj_info 역직렬화
+    size_t objInfoSize = (bufSize - sizeof(int) - sizeof(double)) / sizeof(obj_info);
+    data->object_info.resize(objInfoSize);
+    std::memcpy(data->object_info.data(), buf, objInfoSize * sizeof(obj_info));
 }
 
 void CommuicateThread() {

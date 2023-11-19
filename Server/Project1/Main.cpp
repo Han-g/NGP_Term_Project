@@ -1,36 +1,87 @@
 #include "Server.h"
 #include "Common.h"
 
-#define BUFSIZE 512
+#define BUFSIZE 51200
 
 char buffer[BUFSIZE];
 Send_datatype buf;
-ServerMain* client;
+ServerMain* client; 
+
+#include <cassert>
 
 void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
-	if (bufSize < sizeof(Send_datatype)) {
+	// 데이터 크기 확인
+	size_t dataSize = sizeof(int) + sizeof(double) + data->object_info.size() * sizeof(obj_info);
+
+	// 버퍼 크기 확인
+	if (bufSize < dataSize) {
+		std::cerr << "Buffer size is too small for serialization!" << std::endl;
 		return;
 	}
 
-	// Send_datatype 구조체의 나머지 멤버들을 먼저 복사
-	std::memcpy(buf, data, sizeof(WPARAM) + sizeof(double));
+	// 데이터 복사
+	std::memcpy(buf, &data->wParam, sizeof(int));
+	buf += sizeof(int);
 
-	// object_info의 크기와 데이터를 복사
-	size_t objInfoSize = data->object_info.size() * sizeof(obj_info);
-	if (bufSize >= sizeof(Send_datatype) + objInfoSize) {
-		std::memcpy(buf + sizeof(Send_datatype), data->object_info.data(), objInfoSize);
-	}
+	std::memcpy(buf, &data->GameTime, sizeof(double));
+	buf += sizeof(double);
+
+	std::memcpy(buf, data->object_info.data(), data->object_info.size() * sizeof(obj_info));
 }
 
 void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
-	if (bufSize < sizeof(Send_datatype)) {
+	if (bufSize < sizeof(int) + sizeof(double)) {
+		std::cerr << "Buffer size is too small for deserialization!" << std::endl;
 		return;
 	}
 
-	// 바이트를 Send_datatype 구조체로 복사
-	std::memcpy(&data, buf, sizeof(Send_datatype));
-}
+	// 데이터 복사
+	std::memcpy(&data->wParam, buf, sizeof(int));
+	buf += sizeof(int);
 
+	std::memcpy(&data->GameTime, buf, sizeof(double));
+	buf += sizeof(double);
+
+	// obj_info 역직렬화
+	size_t objInfoSize = (bufSize - sizeof(int) - sizeof(double)) / sizeof(obj_info);
+	data->object_info.resize(objInfoSize);
+	std::memcpy(data->object_info.data(), buf, objInfoSize * sizeof(obj_info));
+}
+/*
+void test() {
+	// 테스트 데이터 생성
+	Send_datatype originalData;
+	originalData.wParam = 42;
+	originalData.GameTime = 3.14;
+
+	obj_info obj1 = { 1, 2, 3, 4, 5, 6, 7, 8 };
+	obj_info obj2 = { 9, 10, 11, 12, 13, 14, 15, 16 };
+	originalData.object_info.push_back(obj1);
+	originalData.object_info.push_back(obj2);
+
+	// 직렬화 후 역직렬화
+	const size_t bufferSize = sizeof(int) + sizeof(double) + originalData.object_info.size() * sizeof(obj_info);
+	char buffer[BUFSIZE];
+	Serialize(&originalData, buffer, bufferSize);
+
+	Send_datatype deserializedData;
+	DeSerialize(&deserializedData, buffer, bufferSize);
+
+	// 원본 데이터와 역직렬화된 데이터 비교
+	assert(originalData.wParam == deserializedData.wParam);
+	assert(originalData.GameTime == deserializedData.GameTime);
+	assert(originalData.object_info.size() == deserializedData.object_info.size());
+	for (size_t i = 0; i < originalData.object_info.size(); ++i) {
+		assert(originalData.object_info[i].posX == deserializedData.object_info[i].posX);
+		assert(originalData.object_info[i].posY == deserializedData.object_info[i].posY);
+		// 나머지 필드에 대한 비교 추가
+	}
+
+	std::cout << "Serialization and deserialization successful!" << std::endl;
+
+	return;
+}
+*/
 DWORD WINAPI ObjectThread(LPVOID arg)
 {
 	client = static_cast<ServerMain*>(arg);
@@ -48,6 +99,7 @@ DWORD WINAPI ObjectThread(LPVOID arg)
 		server->KeyCheckClass();
 
 		SetEvent(InteractiveEvent);
+		SetEvent(ClientRecvEvent[1]);
 	}
 	
 	return 0;
@@ -62,8 +114,8 @@ DWORD WINAPI ClientThread(LPVOID arg)
 
 	while (1)
 	{
-		Serialize(&buf, buffer, sizeof(Send_datatype));
 		int retval = recv(client->getClientSocket(), buffer, BUFSIZE, 0);
+		DeSerialize(&buf, buffer, sizeof(Send_datatype));
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 			break;
@@ -77,7 +129,7 @@ DWORD WINAPI ClientThread(LPVOID arg)
 		// 읽기 완료 이벤트를 시그널 상태로 변경
 		SetEvent(ClientRecvEvent[0]);
 
-		// ObjectThread에서 데이터 처리 이벤트를 기다림 -> ERROR 발생 중
+		// ObjectThread에서 데이터 처리 이벤트를 기다림
 		WaitForSingleObject(ClientRecvEvent[1], INFINITE);
 
 		// 메시지 구성
@@ -90,8 +142,8 @@ DWORD WINAPI ClientThread(LPVOID arg)
 		client->EnqueueMsg(message);	// 메시지 큐에 메시지 추가
 
 		// 클라이언트로 데이터 보내기 (원하는 처리에 따라 수정)
+		Serialize(&buf, buffer, sizeof(Send_datatype));
 		send(client->getClientSocket(), buffer, sizeof(Send_datatype), 0);
-		DeSerialize(&buf, buffer, sizeof(Send_datatype));
 
 		WaitForSingleObject(InteractiveEvent, INFINITE);
 	}
@@ -102,7 +154,7 @@ DWORD WINAPI ClientThread(LPVOID arg)
 int main(void)
 {
 	//오류 확인을 위한 리턴 벨류 변수
-	int retval; 
+	int retval;
 
 	//원속 버전 요청, 라이브러리(WS2_32.DLL) 초기화 
 	WSADATA wsa;
