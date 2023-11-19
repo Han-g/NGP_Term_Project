@@ -77,6 +77,8 @@ void GameSet::getTime(DWORD Time)
 void GameSet::getObjINFO(Send_datatype* buf)
 {
 	obj_info* temp = m_ObjManager->getObj_Info();
+	buf->object_info.clear();
+
 	for (int i = 0; i < MAX_OBJ_NUM; i++) {
 		if(temp[i].posX)
 			buf->object_info.push_back(temp[i]);

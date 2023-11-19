@@ -2,6 +2,8 @@
 #include "Common.h"
 
 #define BUFSIZE 512
+
+char buffer[BUFSIZE];
 Send_datatype buf;
 ServerMain* client;
 
@@ -60,7 +62,8 @@ DWORD WINAPI ClientThread(LPVOID arg)
 
 	while (1)
 	{
-		int retval = recv(client->getClientSocket(), (char*)&buf, BUFSIZE, 0);
+		Serialize(&buf, buffer, sizeof(Send_datatype));
+		int retval = recv(client->getClientSocket(), buffer, BUFSIZE, 0);
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 			break;
@@ -74,7 +77,7 @@ DWORD WINAPI ClientThread(LPVOID arg)
 		// 읽기 완료 이벤트를 시그널 상태로 변경
 		SetEvent(ClientRecvEvent[0]);
 
-		// ObjectThread에서 데이터 처리 이벤트를 기다림
+		// ObjectThread에서 데이터 처리 이벤트를 기다림 -> ERROR 발생 중
 		WaitForSingleObject(ClientRecvEvent[1], INFINITE);
 
 		// 메시지 구성
@@ -87,7 +90,9 @@ DWORD WINAPI ClientThread(LPVOID arg)
 		client->EnqueueMsg(message);	// 메시지 큐에 메시지 추가
 
 		// 클라이언트로 데이터 보내기 (원하는 처리에 따라 수정)
-		send(client->getClientSocket(), (char*)&buf, sizeof(Send_datatype), 0);
+		send(client->getClientSocket(), buffer, sizeof(Send_datatype), 0);
+		DeSerialize(&buf, buffer, sizeof(Send_datatype));
+
 		WaitForSingleObject(InteractiveEvent, INFINITE);
 	}
 

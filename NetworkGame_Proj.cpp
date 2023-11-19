@@ -9,7 +9,7 @@
 
 //#define SERVERIP   "127.0.0.1"
 #define SERVERPORT 9000
-#define BUFSIZE    512
+#define BUFSIZE    51200
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
@@ -34,18 +34,23 @@ DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
 
 void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
-    if (bufSize < sizeof(Send_datatype)) {
+    // 데이터 크기 확인
+    size_t dataSize = sizeof(int) + sizeof(double) + data->object_info.size() * sizeof(obj_info);
+
+    // 버퍼 크기 확인
+    if (bufSize < dataSize) {
+        std::cerr << "Buffer size is too small for serialization!" << std::endl;
         return;
     }
 
-    // Send_datatype 구조체의 나머지 멤버들을 먼저 복사
-    std::memcpy(buf, data, sizeof(WPARAM) + sizeof(double));
+    // 데이터 복사
+    std::memcpy(buf, &data->object_info, sizeof(int));
+    buf += sizeof(int);
 
-    // object_info의 크기와 데이터를 복사
-    size_t objInfoSize = data->object_info.size() * sizeof(obj_info);
-    if (bufSize >= sizeof(Send_datatype) + objInfoSize) {
-        std::memcpy(buf + sizeof(Send_datatype), data->object_info.data(), objInfoSize);
-    }
+    std::memcpy(buf, &data->GameTime, sizeof(double));
+    buf += sizeof(double);
+
+    std::memcpy(buf, data->object_info.data(), data->object_info.size() * sizeof(obj_info));
 }
 
 void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
@@ -402,10 +407,11 @@ DWORD WINAPI ClientMain(LPVOID arg)
         g_game->getObjINFO(&buf);
         buf.wParam = g_game->Key_return();
         char buffer[BUFSIZE];
-        Serialize(&buf, buffer, sizeof(Send_datatype));
+        memset(buffer, NULL, sizeof(char) * BUFSIZE);
+        Serialize(&buf, buffer, sizeof(char)*BUFSIZE);
 
-        //retval = send(sock, buffer, sizeof(Send_datatype), 0);
-        retval = send(sock, (char*)&buf, sizeof(Send_datatype), 0);
+        retval = send(sock, buffer, sizeof(Send_datatype), 0);
+        //retval = send(sock, (char*)&buf, sizeof(Send_datatype), 0);
         if (retval == SOCKET_ERROR) {
             DisplayError("send()");
             break;
@@ -413,8 +419,8 @@ DWORD WINAPI ClientMain(LPVOID arg)
         DisplayText("[TCP 클라이언트] %d바이트를 보냈습니다.\r\n", retval);
 
         // 데이터 받기
-        //retval = recv(sock, buffer, retval, MSG_WAITALL);
-        retval = recv(sock, (char*)&buf, retval, MSG_WAITALL);
+        retval = recv(sock, buffer, retval, MSG_WAITALL);
+        //retval = recv(sock, (char*)&buf, retval, MSG_WAITALL);
         DeSerialize(&buf, buffer, sizeof(Send_datatype));
 
         if (retval == SOCKET_ERROR) {
