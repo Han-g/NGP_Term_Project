@@ -43,6 +43,9 @@ void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
         return;
     }
 
+    // 버퍼 초기화
+    memset(buf, 0, dataSize);
+
     // 데이터 복사
     std::memcpy(buf, &data->wParam, sizeof(int));
     buf += sizeof(int);
@@ -58,6 +61,11 @@ void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
         std::cerr << "Buffer size is too small for deserialization!" << std::endl;
         return;
     }
+
+    // 버퍼 초기화
+    data->object_info.clear();
+    data->GameTime = 0.0f;
+    data->wParam = 0;
 
     // 데이터 복사
     std::memcpy(&data->wParam, buf, sizeof(int));
@@ -418,9 +426,9 @@ DWORD WINAPI ClientMain(LPVOID arg)
         buf.wParam = g_game->Key_return();
         char buffer[BUFSIZE];
         memset(buffer, NULL, sizeof(char) * BUFSIZE);
-        Serialize(&buf, buffer, sizeof(char)*BUFSIZE);
+        Serialize(&buf, buffer, sizeof(char) * BUFSIZE);
 
-        retval = send(sock, buffer, sizeof(Send_datatype), 0);
+        retval = send(sock, buffer, sizeof(char) * BUFSIZE, 0);
         //retval = send(sock, (char*)&buf, sizeof(Send_datatype), 0);
         if (retval == SOCKET_ERROR) {
             DisplayError("send()");

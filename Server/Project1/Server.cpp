@@ -141,30 +141,32 @@ void ObjectMain::updateTime(std::chrono::time_point<std::chrono::system_clock> g
 
 void ObjectMain::KeyCheckClass()
 {
-	switch (wParam)
-	{
-	case 37: // left
-		m_Key_LEFT = true;
-		break;
-	case 38: // up
-		m_Key_UP = true;
-		break;
-	case 39: // right
-		m_Key_RIGHT = true;
-		break;
-	case 40: // down
-		m_Key_DOWN = true;
-		break;
+	if (wParam != 0) {
+		switch (wParam)
+		{
+		case 37: // left
+			m_Key_LEFT = true;
+			break;
+		case 38: // up
+			m_Key_UP = true;
+			break;
+		case 39: // right
+			m_Key_RIGHT = true;
+			break;
+		case 40: // down
+			m_Key_DOWN = true;
+			break;
 
-	case 16: // bubble  (shift)
-		m_Key_BUBBLE = true;
-		break;
-	case 17: // item	 (ctrl)
-		m_Key_ITEM = true;
-		break;
+		case 16: // bubble  (shift)
+			m_Key_BUBBLE = true;
+			break;
+		case 17: // item	 (ctrl)
+			m_Key_ITEM = true;
+			break;
 
-	default:
-		break;
+		default:
+			break;
+		}
 	}
 }
 

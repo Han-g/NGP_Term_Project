@@ -60,6 +60,7 @@ void GameSet::DrawAll(HDC hdc, HINSTANCE hInst)
 void GameSet::KeyInput(Obj_Interaction* g_Interaction, WPARAM wParam)
 {
 	//m_ObjManager->UpdateAll(g_Interaction, wParam);
+	g_Interaction->KeyDown(wParam);
 	key_Input = g_Interaction->returnInput();
 }
 

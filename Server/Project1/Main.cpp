@@ -7,8 +7,6 @@ char buffer[BUFSIZE];
 Send_datatype buf;
 ServerMain* client; 
 
-#include <cassert>
-
 void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 	// 데이터 크기 확인
 	size_t dataSize = sizeof(int) + sizeof(double) + data->object_info.size() * sizeof(obj_info);
@@ -18,6 +16,9 @@ void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 		std::cerr << "Buffer size is too small for serialization!" << std::endl;
 		return;
 	}
+
+	// 버퍼 초기화
+	memset(buf, 0, dataSize);
 
 	// 데이터 복사
 	std::memcpy(buf, &data->wParam, sizeof(int));
@@ -35,6 +36,11 @@ void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
 		return;
 	}
 
+	// 버퍼 초기화
+	data->object_info.clear();
+	data->GameTime = 0.0f;
+	data->wParam = 0;
+
 	// 데이터 복사
 	std::memcpy(&data->wParam, buf, sizeof(int));
 	buf += sizeof(int);
@@ -48,6 +54,7 @@ void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
 	std::memcpy(data->object_info.data(), buf, objInfoSize * sizeof(obj_info));
 }
 /*
+#include <cassert>
 void test() {
 	// 테스트 데이터 생성
 	Send_datatype originalData;
@@ -115,7 +122,7 @@ DWORD WINAPI ClientThread(LPVOID arg)
 	while (1)
 	{
 		int retval = recv(client->getClientSocket(), buffer, BUFSIZE, 0);
-		DeSerialize(&buf, buffer, sizeof(Send_datatype));
+		DeSerialize(&buf, buffer, sizeof(char) * BUFSIZE);
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 			break;
@@ -142,8 +149,8 @@ DWORD WINAPI ClientThread(LPVOID arg)
 		client->EnqueueMsg(message);	// 메시지 큐에 메시지 추가
 
 		// 클라이언트로 데이터 보내기 (원하는 처리에 따라 수정)
-		Serialize(&buf, buffer, sizeof(Send_datatype));
-		send(client->getClientSocket(), buffer, sizeof(Send_datatype), 0);
+		Serialize(&buf, buffer, sizeof(char) * BUFSIZE);
+		send(client->getClientSocket(), buffer, sizeof(char) * BUFSIZE, 0);
 
 		WaitForSingleObject(InteractiveEvent, INFINITE);
 	}
