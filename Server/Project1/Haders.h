@@ -5,6 +5,10 @@
 #include <Windows.h>
 
 #include <iostream>
+#include <time.h>
+#include <stdio.h>
+#include <time.h>
+
 using namespace std;
 
 #define nPort 9000

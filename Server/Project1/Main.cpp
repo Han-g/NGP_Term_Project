@@ -7,6 +7,12 @@ char buffer[BUFSIZE];
 Send_datatype buf;
 ServerMain* client; 
 
+static ULONGLONG Frame = 10.0f;
+static float ClientTime[2] = { 0.f, 0.f };
+static float Time = 0.f;
+
+
+
 void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 	// 데이터 크기 확인
 	size_t dataSize = sizeof(int) + sizeof(double) + data->object_info.size() * sizeof(obj_info);
@@ -118,9 +124,23 @@ DWORD WINAPI ClientThread(LPVOID arg)
 	//int ClientNum = client->getClientNum();
 	DWORD status;
 
+	float fTime = 0.f;
+	ULONGLONG StartTime = GetTickCount64();
+
 
 	while (1)
 	{
+		if (GetTickCount64() - StartTime >= Frame)
+		{
+			fTime = GetTickCount64() - StartTime; // 현재 시간과 이전 프레임 시간 차이로 시간계산
+			fTime = fTime / 1000.0f; // 프레임 1초에 60으로 고정
+			ClientTime[0] = ClientTime[1] = fTime; // 클라이언트 프레임 동기화
+
+			//fTime의 시간값을 받는 함수 추가.
+
+			StartTime = GetTickCount64();
+		}
+
 		int retval = recv(client->getClientSocket(), buffer, BUFSIZE, 0);
 		DeSerialize(&buf, buffer, sizeof(char) * BUFSIZE);
 		if (retval == SOCKET_ERROR) {

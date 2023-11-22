@@ -27,12 +27,13 @@ public:
 	void ProcessMessages(); 
 	void getBuffer(Send_datatype buf);
 	void returnBuffer(Send_datatype buf);
+	void DisconnectClient(int iClient);
 	double getTime();
 
 	void GameStart();
 	void EventLoop();
 
-	int getClientNum() const { return iClient; }
+	int getClientNum() const { return numofclient; }
 	SOCKET getClientSocket();
 
 private:
@@ -41,7 +42,7 @@ private:
 
 	SOCKET sockets;
 
-	int iClient;
+	int numofclient;
 
 	std::chrono::time_point<std::chrono::system_clock> gameStartTime;
 	std::queue<EventQueue> messageQueue;
@@ -55,7 +56,7 @@ public:
 	~ObjectMain();
 
 	void GameServer(Send_datatype data);
-	void DisconnectClient(int iClient);
+	
 
 	void KeyCheckClass();
 	void ObjectCollision();

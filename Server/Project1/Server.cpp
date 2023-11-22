@@ -19,7 +19,7 @@ ServerMain::ServerMain(SOCKET recv_socket, int i)
 	send_Buf.wParam = 0;
 
 	sockets = recv_socket;
-	iClient = i;
+	numofclient = i;
 
 	msgEventQueue = CreateEvent(NULL, FALSE, FALSE, NULL);
 	gameStartTime = std::chrono::system_clock::now();
@@ -84,6 +84,15 @@ void ServerMain::EventLoop()
 
 }
 
+void ServerMain::DisconnectClient(int clientnum)
+{
+	numofclient -= 1;
+
+
+	if (numofclient < 0)
+		numofclient = 0;
+}
+
 SOCKET ServerMain::getClientSocket()
 {
 	return sockets;
@@ -126,9 +135,7 @@ void ObjectMain::GameServer(Send_datatype data)
 	wParam = data.wParam;
 }
 
-void ObjectMain::DisconnectClient(int iClient)
-{
-}
+
 
 void ObjectMain::ObjectCollision()
 {
