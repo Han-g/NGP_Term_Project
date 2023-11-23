@@ -53,6 +53,7 @@ void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
 	data->object_info.resize(objInfoSize);
 	std::memcpy(data->object_info.data(), buf, objInfoSize * sizeof(obj_info));
 }
+
 /*
 #include <cassert>
 void test() {
@@ -89,6 +90,7 @@ void test() {
 	return;
 }
 */
+
 DWORD WINAPI ObjectThread(LPVOID arg)
 {
 	client = static_cast<ServerMain*>(arg);

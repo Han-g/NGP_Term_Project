@@ -46,7 +46,12 @@ void ServerMain::ProcessMessages()
 	while (!messageQueue.empty()) {
 		EventQueue message = messageQueue.front();
 		// 메시지 처리 로직 추가
-
+		switch (message.msgType) {
+		case 1:
+			break;
+		default:
+			break;
+		}
 		// 메시지 큐에서 메시지 제거
 		messageQueue.pop();
 	}
