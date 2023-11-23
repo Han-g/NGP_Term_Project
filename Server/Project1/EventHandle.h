@@ -8,5 +8,5 @@ public:
 	~EventHandle();
 
 private:
-
+	obj_info char_info;
 };
