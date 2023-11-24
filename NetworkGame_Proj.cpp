@@ -261,11 +261,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_KEYDOWN:
         g_game->KeyInput(g_Interaction, wParam);
-        CommuicateThread();
-        //SetEvent(hReadEvent);
+        //CommuicateThread();
+        SetEvent(hWriteEvent);
         break;
     case WM_KEYUP:
         InvalidateRect(hWnd, NULL, TRUE);
+        ResetEvent(hWriteEvent);
         break;
     case WM_COMMAND:
         {
@@ -397,9 +398,14 @@ DWORD WINAPI ClientMain(LPVOID arg)
         return 1;
     }
 
+    // 게임 프레임
+    const int framesPerSec = 60;
+    const int frameDelay = 1000 / framesPerSec;
+
     // 서버와 데이터 통신
     while (1) {
-        WaitForSingleObject(hWriteEvent, INFINITE); // 쓰기 완료 대기
+        DWORD startTime = GetTickCount();
+        //WaitForSingleObject(hWriteEvent, INFINITE); // 쓰기 완료 대기
 
         // 문자열 길이가 0이면 보내지 않음
         //if (strlen(buf) == 0) {
@@ -438,6 +444,13 @@ DWORD WINAPI ClientMain(LPVOID arg)
 
         EnableWindow(hSendButton, TRUE); // 보내기 버튼 활성화
         SetEvent(hReadEvent); // 읽기 완료 알림
+
+        DWORD elapsedTime = GetTickCount() - startTime;
+        int remainingTime = frameDelay - elapsedTime;
+
+        if (remainingTime > 0) {
+            Sleep(remainingTime);
+        }
     }
 
     closesocket(sock);
