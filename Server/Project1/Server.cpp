@@ -57,6 +57,11 @@ void ServerMain::ProcessMessages()
 	}
 }
 
+int ServerMain::getClientNum()
+{
+	return numofclient;
+}
+
 void ServerMain::getBuffer(Send_datatype buf)
 {
 	//memcpy(recv_Buf, &buf, sizeof(Send_datatype));
@@ -114,8 +119,9 @@ ObjectMain::ObjectMain()
 	m_Key_BUBBLE = FALSE;
 	m_Key_ITEM	= FALSE;
 
-	events = new EventHandle(recv_Buf);
+	events = new EventHandle();
 	wParam = 0;
+	bubble_count = 0;
 	ClientNum = 0;
 }
 
@@ -129,6 +135,7 @@ void ObjectMain::GameServer(Send_datatype data)
 	//memcpy(recv_Buf, data, sizeof(Send_datatype));
 	object_vector = data.object_info;
 	wParam = data.wParam;
+	events->check_obj(data);
 }
 
 void ObjectMain::DisconnectClient(int iClient)
@@ -146,38 +153,37 @@ void ObjectMain::updateTime(std::chrono::time_point<std::chrono::system_clock> g
 
 void ObjectMain::KeyCheckClass()
 {
-	if (wParam != 0) {
-		switch (wParam)
-		{
-		case 37: // left
-			m_Key_LEFT = true;
-			break;
-		case 38: // up
-			m_Key_UP = true;
-			break;
-		case 39: // right
-			m_Key_RIGHT = true;
-			break;
-		case 40: // down
-			m_Key_DOWN = true;
-			break;
+	events->check_key();
+	if (events->return_key_UP()) {
+		ObjectCollision();
+		//events->update_char();
 
-		case 16: // bubble  (shift)
-			m_Key_BUBBLE = true;
-			break;
-		case 17: // item	 (ctrl)
-			m_Key_ITEM = true;
-			break;
+	}
+	if (events->return_key_DOWN()) {
+		ObjectCollision();
 
-		default:
-			break;
-		}
+	}
+	if (events->return_key_LEFT()) {
+		ObjectCollision();
+
+	}
+	if (events->return_key_RIGHT()) {
+		ObjectCollision();
+
+	}
+	if (events->return_key_BUBBLE()) {
+		ObjectCollision();
+
+	}
+	if (events->return_key_ITEM()) {
+		ObjectCollision();
+
 	}
 }
 
 bool ObjectMain::ClientFullCheck()
 {
-	return false;
+	return ClientNum < 5;
 }
 
 bool ObjectMain::WaitEventCheck()

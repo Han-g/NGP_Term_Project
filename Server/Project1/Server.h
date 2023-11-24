@@ -25,6 +25,7 @@ public:
 
 	void EnqueueMsg(const EventQueue& msg);
 	void ProcessMessages(); 
+	int getClientNum();
 	void getBuffer(Send_datatype buf);
 	void returnBuffer(Send_datatype buf);
 	double getTime();
@@ -70,7 +71,7 @@ private:
 	int ClientNum;
 
 	std::vector<obj_info> object_vector;
-	int wParam;
+	int wParam, bubble_count;
 
 	EventHandle* events;
 

@@ -5,7 +5,14 @@
 
 char buffer[BUFSIZE];
 Send_datatype buf;
-ServerMain* client; 
+ServerMain* client;
+HANDLE bufferAccess;
+
+static ULONGLONG Frame = 10.0f;
+static float ClientTime[2] = { 0.f, 0.f };
+static float Time = 0.f;
+std::vector<int> clientNum;
+
 
 void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 	// 데이터 크기 확인
@@ -104,8 +111,8 @@ DWORD WINAPI ObjectThread(LPVOID arg)
 		}
 
 		server->GameServer(buf);
-		server->ObjectCollision();
 		server->KeyCheckClass();
+		//server->ObjectCollision();
 
 		SetEvent(InteractiveEvent);
 		SetEvent(ClientRecvEvent[1]);
@@ -123,17 +130,30 @@ DWORD WINAPI ClientThread(LPVOID arg)
 
 	while (1)
 	{
+		if (GetTickCount64() - StartTime >= Frame)
+		{
+			fTime = GetTickCount64() - StartTime; // 현재 시간과 이전 프레임 시간 차이로 시간계산
+			fTime = fTime / 1000.0f; // 프레임 1초에 60으로 고정
+			ClientTime[0] = ClientTime[1] = fTime; // 클라이언트 프레임 동기화
+
+			//fTime의 시간값을 받는 함수 추가.
+
+			StartTime = GetTickCount64();
+		}
+
+		//WaitForSingleObject(bufferAccess, INFINITE);
 		int retval = recv(client->getClientSocket(), buffer, BUFSIZE, 0);
-		DeSerialize(&buf, buffer, sizeof(char) * BUFSIZE);
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 			break;
 		}
-		
 		// 클라이언트가 연결을 종료한 경우
 		else if (retval == 0) {
 			break;
 		}
+
+		DeSerialize(&buf, buffer, sizeof(char) * BUFSIZE);
+		SetEvent(bufferAccess);
 
 		// 읽기 완료 이벤트를 시그널 상태로 변경
 		SetEvent(ClientRecvEvent[0]);
@@ -151,12 +171,16 @@ DWORD WINAPI ClientThread(LPVOID arg)
 		client->EnqueueMsg(message);	// 메시지 큐에 메시지 추가
 
 		// 클라이언트로 데이터 보내기 (원하는 처리에 따라 수정)
+		ResetEvent(bufferAccess);
 		Serialize(&buf, buffer, sizeof(char) * BUFSIZE);
 		send(client->getClientSocket(), buffer, sizeof(char) * BUFSIZE, 0);
+		SetEvent(bufferAccess);
 
 		WaitForSingleObject(InteractiveEvent, INFINITE);
 	}
 
+	clientNum.erase(clientNum.begin() + client->getClientNum());
+	closesocket(client->getClientSocket());
 	return 0;
 }
 
@@ -196,22 +220,58 @@ int main(void)
 	ClientRecvEvent[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
 	ClientRecvEvent[1] = CreateEvent(NULL, FALSE, FALSE, NULL);
 	InteractiveEvent = CreateEvent(NULL, FALSE, TRUE, NULL);
+	bufferAccess = CreateEvent(NULL, FALSE, FALSE, NULL);
+	if (bufferAccess == NULL) {
+		std::cerr << "Failed to create buffer event!" << std::endl;
+		return 0;
+	}
 
 	// 데이터 통신에 사용할 변수
 	SOCKADDR_IN clientaddr;		//주소 받기용 구조체
 	int addrlen;				// 주소 길이 확인을 위한 변수
+	int client_count = 0;
 
 	while (1) {
-		// accept
 		SOCKET client_sock;
+		// accept
 		addrlen = sizeof(clientaddr);
 		client_sock = accept(listen_sock, (SOCKADDR*)&clientaddr, &addrlen);
 
 		//클라이언트 가득 찼으면 멈춤
-		/*if (!server->ClientFullCheck()) {
+		if (clientNum.size() < 5) {
+			if (client_count < 5) {
+				clientNum.push_back(client_count);
+			}
+			else {
+				int availableSlot = -1;
+				for (int check = 0; check < 5; ++check) {
+					bool found = false;
+					for (int i : clientNum) {
+						if (i == check) {
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						availableSlot = check;
+						break;
+					}
+				}
+
+				if (availableSlot != -1) {
+					clientNum.push_back(availableSlot);
+				}
+				else {
+					std::cerr << "Server is full!" << std::endl;
+					closesocket(client_sock);
+				}
+			}
+		}
+		else {
+			std::cerr << "Server is full!" << std::endl;
 			closesocket(client_sock);
 			continue; 
-		}*/
+		}
 
 		//소켓타입이 INVALID_SOCKET으로 오류 반환시 알림
 		if (client_sock == INVALID_SOCKET) {
@@ -229,7 +289,7 @@ int main(void)
 		HANDLE hThread;
 
 		//클라이언트 초기화
-		ServerMain* client = new ServerMain(client_sock, server->getClientNum());
+		ServerMain* client = new ServerMain(client_sock, client_count);
 		
 		hThread = CreateThread(NULL, 0, ClientThread, client, 0, NULL);
 
@@ -240,7 +300,8 @@ int main(void)
 			CloseHandle(hThread);
 		}	
 		
-		ServerMain* clientInstance = new ServerMain(INVALID_SOCKET, 0);
+		//ServerMain* clientInstance = new ServerMain(INVALID_SOCKET, 0);
+		
 		//오브젝트 스레드 생성
 		hThread = CreateThread(NULL, 0, ObjectThread, NULL, 0, NULL); 
 
@@ -253,11 +314,8 @@ int main(void)
 		}
 	}
 
-
-	// closesocket()
-	closesocket(listen_sock);
-
 	// 윈속 종료
+	delete server, client;
 	WSACleanup();
 	return 0;
 }
