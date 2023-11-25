@@ -21,9 +21,9 @@ EventHandle::~EventHandle()
 
 void EventHandle::check_obj(Send_datatype data)
 {
-	for (obj_info i : data.object_info) {
+	for (const obj_info &i : data.object_info) {
 		if (i.type == Char_Idle) {
-			char_info = i;
+			char_info = i; 
 			break;
 		}
 	}
@@ -63,12 +63,23 @@ void EventHandle::check_key()
 
 obj_info EventHandle::update_char(int x, int y)
 {
-	char_info.posX += x;
-	char_info.posY += y;
+	if (char_info.posX + x >= 0 && char_info.posX + x < 15) {
+		char_info.posX += x;
+	}
+	else {
+		return char_info;
+	}
+	if (char_info.posY + y >= 0 && char_info.posY + y < 15) {
+		char_info.posY += y;
+	}
+	else {
+		return char_info;
+	}
+
 	return char_info;
 }
 
-void EventHandle::move_char()
+void EventHandle::move_char(int x, int y)
 {
 
 }

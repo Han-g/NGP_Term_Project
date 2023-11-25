@@ -112,6 +112,7 @@ DWORD WINAPI ObjectThread(LPVOID arg)
 
 		server->GameServer(buf);
 		server->KeyCheckClass();
+		server->UpdateData();
 		//server->ObjectCollision();
 
 		SetEvent(InteractiveEvent);

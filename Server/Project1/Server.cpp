@@ -113,6 +113,8 @@ SOCKET ServerMain::getClientSocket()
 ObjectMain::ObjectMain()
 {
 	obj_info temp = { 0,0,0,0,0,0,{0,0} };
+	char_info = temp;
+
 	recv_Buf.object_info.push_back(temp);
 	recv_Buf.GameTime = 0;
 	recv_Buf.wParam = 0;
@@ -142,15 +144,45 @@ ObjectMain::~ObjectMain()
 void ObjectMain::GameServer(Send_datatype data)
 {
 	//memcpy(recv_Buf, data, sizeof(Send_datatype));
+	recv_Buf = data;
 	object_vector = data.object_info;
 	wParam = data.wParam;
 	events->check_obj(data);
+}
+
+Send_datatype ObjectMain::UpdateData()
+{
+	// object_vector 내 캐릭터 오브젝트 정보 추출
+	auto index = find_if(object_vector.begin(), object_vector.end(), [](obj_info i) {
+		return i.type == Char_Idle;
+		});
+	if (index != object_vector.end()) {
+		char_info = *index;
+	}
+	else {
+		std::cerr << "Can't Find Character info!" << std::endl;
+		return recv_Buf;
+	}
+
+	// 캐릭터 오브젝트 내용 업데이트
+	replace_if(object_vector.begin(), object_vector.end(), [](obj_info i) {	
+		return i.type == Char_Idle;
+		}, char_info);
+
+	return send_Buf;
 }
 
 
 
 void ObjectMain::ObjectCollision()
 {
+	// 충돌 처리 구현
+	// 플레이어 / 맵
+
+	// 플레이어 / 버블
+
+	// 버블 / 맵
+
 }
 
 void ObjectMain::updateTime(std::chrono::time_point<std::chrono::system_clock> gameTime)
@@ -163,19 +195,22 @@ void ObjectMain::KeyCheckClass()
 	events->check_key();
 	if (events->return_key_UP()) {
 		ObjectCollision();
-		//events->update_char();
+		char_info = events->update_char(0, 1);
 
 	}
 	if (events->return_key_DOWN()) {
 		ObjectCollision();
+		char_info = events->update_char(0, -1);
 
 	}
 	if (events->return_key_LEFT()) {
 		ObjectCollision();
+		char_info = events->update_char(-1, 0);
 
 	}
 	if (events->return_key_RIGHT()) {
 		ObjectCollision();
+		char_info = events->update_char(1, 0);
 
 	}
 	if (events->return_key_BUBBLE()) {

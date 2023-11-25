@@ -10,7 +10,7 @@ public:
 	void check_obj(Send_datatype data);
 	void check_key();
 	obj_info update_char(int x, int y);
-	void move_char();
+	void move_char(int x, int y);
 	void set_bubble();
 
 	bool return_key_UP() const;

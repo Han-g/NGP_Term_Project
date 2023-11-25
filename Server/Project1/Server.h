@@ -24,7 +24,7 @@ public:
 	~ServerMain();
 
 	void EnqueueMsg(const EventQueue& msg);
-	void ProcessMessages(); 
+	void ProcessMessages();
 	int getClientNum();
 	void getBuffer(Send_datatype buf);
 	void returnBuffer(Send_datatype buf);
@@ -57,7 +57,7 @@ public:
 	~ObjectMain();
 
 	void GameServer(Send_datatype data);
-	
+	Send_datatype UpdateData();
 
 	void KeyCheckClass();
 	void ObjectCollision();
@@ -72,6 +72,7 @@ private:
 	int ClientNum;
 
 	std::vector<obj_info> object_vector;
+	obj_info char_info;
 	int wParam, bubble_count;
 
 	EventHandle* events;
