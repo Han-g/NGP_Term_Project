@@ -128,9 +128,10 @@ DWORD WINAPI ClientThread(LPVOID arg)
 	//int ClientNum = client->getClientNum();
 	DWORD status;
 
+	int frame = 0;
 	float fTime = 0.f;
 	ULONGLONG StartTime = GetTickCount64();
-
+	ULONGLONG StartTime2 = GetTickCount64();
 
 	while (1)
 	{
@@ -142,7 +143,15 @@ DWORD WINAPI ClientThread(LPVOID arg)
 
 			//fTime의 시간값을 받는 함수 추가.
 
+			frame++;
 			StartTime = GetTickCount64();
+		}
+
+		if (GetTickCount64() - StartTime >= 1000)
+		{
+			cout << "Fps : " << frame << endl;
+			StartTime2 = GetTickCount64();
+			frame = 0;
 		}
 
 		int retval = recv(client->getClientSocket(), buffer, BUFSIZE, 0);
