@@ -295,7 +295,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             //WaitForSingleObject(hReadEvent, INFINITE); // 읽기 완료 대기
             ResetEvent(hReadEvent); // 처리 후 이벤트 재설정
-            Update(); // 데이터 처리
         }
         break;
     case WM_DESTROY:
@@ -331,44 +330,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
-}
-
-void Update()
-{
-    int retval;
-
-    // 데이터 보내기
-    g_game->getObjINFO(&buf);
-    buf.wParam = g_game->Key_return();
-    char buffer[BUFSIZE];
-    memset(buffer, NULL, sizeof(char) * BUFSIZE);
-    Serialize(&buf, buffer, sizeof(char) * BUFSIZE);
-
-    retval = send(sock, buffer, sizeof(char) * BUFSIZE, 0);
-    //retval = send(sock, (char*)&buf, sizeof(Send_datatype), 0);
-    if (retval == SOCKET_ERROR) {
-        return;
-    }
-    //DisplayText("[TCP 클라이언트] %d바이트를 보냈습니다.\r\n", retval);
-
-    // 데이터 받기
-    retval = recv(sock, buffer, retval, MSG_WAITALL);
-    //retval = recv(sock, (char*)&buf, retval, MSG_WAITALL);
-    DeSerialize(&buf, buffer, sizeof(Send_datatype));
-
-    if (retval == SOCKET_ERROR) {
-        return;
-    }
-    else if (retval == 0)
-        return;
-
-    // 받은 데이터 출력
-    //buf[retval] = '\0';
-    //DisplayText("[TCP 클라이언트] %d바이트를 받았습니다.\r\n", retval);
-    //DisplayText("[받은 데이터] %s\r\n", buf);
-
-    EnableWindow(hSendButton, TRUE); // 보내기 버튼 활성화
-    SetEvent(hReadEvent); // 읽기 완료 알림
 }
 
 // TCP 클라이언트 시작 부분
@@ -429,7 +390,10 @@ DWORD WINAPI ClientMain(LPVOID arg)
         //DisplayText("[TCP 클라이언트] %d바이트를 보냈습니다.\r\n", retval);
 
         // 데이터 받기
-        retval = recv(sock, buffer, retval, MSG_WAITALL);
+        size_t dataSize = 0;
+        retval = recv(sock, reinterpret_cast<char*>(&dataSize), sizeof(size_t), 0);
+
+        retval = recv(sock, buffer, dataSize, MSG_WAITALL);
         //retval = recv(sock, (char*)&buf, retval, MSG_WAITALL);
         DeSerialize(&buf, buffer, sizeof(Send_datatype));
 

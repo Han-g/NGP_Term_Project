@@ -54,5 +54,5 @@ typedef struct obj_info {
 typedef struct Send_datatype {
 	std::vector<obj_info> object_info;
 	int wParam;
-	double GameTime;
+	int GameTime;
 } Send_datatype;
