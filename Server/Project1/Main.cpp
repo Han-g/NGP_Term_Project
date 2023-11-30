@@ -1,20 +1,26 @@
-#include "Server.h"
 #include "Common.h"
+#include "ClientManager.h"
+#include "ObjectManager.h"
 
-#define BUFSIZE 51200
+#define BUFSIZE 50000
 
 char buffer[BUFSIZE];
-Send_datatype buf;
-ServerMain* client;
-HANDLE bufferAccess;
+Send_datatype Server_bufs;
+//ClientManager* client;
+//ObjectManager* object;
 
 static ULONGLONG Frame = 10.0f;
 static float ClientTime[2] = { 0.f, 0.f };
 static float Time = 0.f;
-std::vector<int> clientNum;
+std::vector<ClientInfo> clients;
+std::vector<Send_datatype> Server_bufVector;
+Send_datatype Server_bufArray[4];
 
+// Event 선언
+HANDLE bufferAccess;
+HANDLE UpdateMutex;
 
-void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
+static void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 	// 데이터 크기 확인
 	size_t dataSize = sizeof(int) + sizeof(double) + data->object_info.size() * sizeof(obj_info);
 
@@ -37,7 +43,7 @@ void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 	std::memcpy(buf, data->object_info.data(), data->object_info.size() * sizeof(obj_info));
 }
 
-void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
+static void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
 	if (bufSize < sizeof(int) + sizeof(double)) {
 		std::cerr << "Buffer size is too small for deserialization!" << std::endl;
 		return;
@@ -61,72 +67,68 @@ void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
 	std::memcpy(data->object_info.data(), buf, objInfoSize * sizeof(obj_info));
 }
 
-/*
-#include <cassert>
-void test() {
-	// 테스트 데이터 생성
-	Send_datatype originalData;
-	originalData.wParam = 42;
-	originalData.GameTime = 3.14;
-
-	obj_info obj1 = { 1, 2, 3, 4, 5, 6, 7, 8 };
-	obj_info obj2 = { 9, 10, 11, 12, 13, 14, 15, 16 };
-	originalData.object_info.push_back(obj1);
-	originalData.object_info.push_back(obj2);
-
-	// 직렬화 후 역직렬화
-	const size_t bufferSize = sizeof(int) + sizeof(double) + originalData.object_info.size() * sizeof(obj_info);
-	char buffer[BUFSIZE];
-	Serialize(&originalData, buffer, bufferSize);
-
-	Send_datatype deserializedData;
-	DeSerialize(&deserializedData, buffer, bufferSize);
-
-	// 원본 데이터와 역직렬화된 데이터 비교
-	assert(originalData.wParam == deserializedData.wParam);
-	assert(originalData.GameTime == deserializedData.GameTime);
-	assert(originalData.object_info.size() == deserializedData.object_info.size());
-	for (size_t i = 0; i < originalData.object_info.size(); ++i) {
-		assert(originalData.object_info[i].posX == deserializedData.object_info[i].posX);
-		assert(originalData.object_info[i].posY == deserializedData.object_info[i].posY);
-		// 나머지 필드에 대한 비교 추가
+void ObjectSaver(DWORD clientID, const Send_datatype& data)
+{
+	WaitForSingleObject(bufferAccess, INFINITE);
+	/*if (Server_bufVector.empty()) {
+		Server_bufVector.push_back(data);
 	}
-
-	std::cout << "Serialization and deserialization successful!" << std::endl;
-
-	return;
+	else {
+		Server_bufVector[(int)clientID-1] = data;
+	}*/
+	Server_bufArray[(int)clientID - 1].GameTime = data.GameTime;
+	Server_bufArray[(int)clientID - 1].wParam = data.wParam;
+	if (Server_bufArray[(int)clientID - 1].object_info.empty()) {
+		Server_bufArray[(int)clientID - 1].object_info = data.object_info;
+	}
+	else {
+		Server_bufArray[(int)clientID - 1].object_info.clear();
+		Server_bufArray[(int)clientID - 1].object_info = data.object_info;
+	}
+	ReleaseMutex(bufferAccess);
 }
-*/
+Send_datatype ObjectGetter(DWORD clientID)
+{
+	WaitForSingleObject(bufferAccess, INFINITE);
+	Send_datatype copy;
+	/*if (Server_bufVector.size() > 0) {
+		copy = Server_bufVector[(int)clientID-1];
+	}*/
+	copy = Server_bufArray[(int)clientID - 1];
+	ReleaseMutex(bufferAccess);
+	return copy;
+}
 
 DWORD WINAPI ObjectThread(LPVOID arg)
 {
-	client = static_cast<ServerMain*>(arg);
+	ClientInfo* clientInfo = static_cast<ClientInfo*>(arg);
+	ObjectManager* object = new ObjectManager();
 
-	while (1) {
-		ResetEvent(InteractiveEvent);
+	while (1)
+	{
+		// bufferAccess 이벤트 설정 시 수행
+		object->GameSet(ObjectGetter(clientInfo->clientID));
+		WaitForSingleObject(clientInfo->clientEvent, INFINITE);
+		object->Key_Check();
+		//ObjectSaver(clientInfo->clientID, Server_bufVector[(int)clientInfo->clientID-1]);
+		ObjectSaver(clientInfo->clientID, Server_bufArray[(int)clientInfo->clientID - 1]);
 
-		// 메시지 큐 확인
-		if (client) {
-			client->ProcessMessages();
+		ResetEvent(clientInfo->clientEvent);
+		// send 수행 이벤트
+		if (clients[clientInfo->clientID - 1].socket == 0) {
+			break;
 		}
-
-		server->GameServer(buf);
-		server->KeyCheckClass();
-		server->UpdateData();
-		//server->ObjectCollision();
-
-		SetEvent(InteractiveEvent);
-		SetEvent(ClientRecvEvent[1]);
 	}
-	
+
+	delete object;
 	return 0;
 }
 
-DWORD WINAPI ClientThread(LPVOID arg)
+
+DWORD WINAPI ServerThread(LPVOID arg)
 {
-	ServerMain* client = static_cast<ServerMain*>(arg);
-	//int ClientNum = client->getClientNum();
-	DWORD status;
+	ClientInfo* clientInfo = static_cast<ClientInfo*>(arg);
+	ClientManager* server = new ClientManager(clientInfo->socket, clientInfo->clientID);
 
 	int frame = 0;
 	float fTime = 0.f;
@@ -135,113 +137,112 @@ DWORD WINAPI ClientThread(LPVOID arg)
 
 	while (1)
 	{
-		if (GetTickCount64() - StartTime >= Frame)
-		{
-			fTime = GetTickCount64() - StartTime; // 현재 시간과 이전 프레임 시간 차이로 시간계산
-			fTime = fTime / 1000.0f; // 프레임 1초에 60으로 고정
-			ClientTime[0] = ClientTime[1] = fTime; // 클라이언트 프레임 동기화
+		//WaitForSingleObject(clientInfo->clientEvent, INFINITE);
+		if (GetTickCount64() - StartTime >= Frame) {
+			fTime = GetTickCount64() - StartTime;	// 현시간과 이전 프레임 시간 차로 시간계산
+			fTime = fTime / 1000.0f;				// 프레임 1초에 60으로 고정
+			ClientTime[0] = ClientTime[1] = fTime;	// 클라이언트 프레임 동기화
 
 			//fTime의 시간값을 받는 함수 추가.
-
 			frame++;
 			StartTime = GetTickCount64();
 		}
 
 		if (GetTickCount64() - StartTime >= 1000)
 		{
-			cout << "Fps : " << frame << endl;
+			std::cout << "FPS : " << frame << std::endl;
 			StartTime2 = GetTickCount64();
 			frame = 0;
 		}
 
-		int retval = recv(client->getClientSocket(), buffer, BUFSIZE, 0);
-		if (retval == SOCKET_ERROR) {
+		// 클라이언트에게서 오브젝트 정보 받아오기
+		int retval = recv(clientInfo->socket, buffer, sizeof(char) * BUFSIZE, 0);
+		if (retval == SOCKET_ERROR || retval == 0) {
 			err_display("recv()");
+			clients[(int)clientInfo->clientID - 1].socket = 0;
+			memset(&Server_bufArray[(int)clientInfo->clientID - 1], 0, sizeof(Send_datatype));
 			break;
 		}
-		// 클라이언트가 연결을 종료한 경우
-		else if (retval == 0) {
-			break;
+		else {
+			//Server_bufs = ObjectGetter(clientInfo->clientID);
+			DeSerialize(&Server_bufs, buffer, sizeof(char) * BUFSIZE);
+			ObjectSaver(clientInfo->clientID, Server_bufs);
+			// 모든 클라이언트 오브젝트 관리
+			if (Server_bufArray[(int)clientInfo->clientID - 1].wParam != 0) {
+				SetEvent(clientInfo->clientEvent);
+			}
+
+			//server->getBuffer(ObjectGetter(clientInfo->clientID));
+			//ObjectSaver(clientInfo->clientID, server->returnBuffer());
 		}
 
-		DeSerialize(&buf, buffer, sizeof(char) * BUFSIZE);
-		SetEvent(bufferAccess);
+		// 배정된 ClientThread의 클라이언트 정보 전달
+		for (auto& clientVector : clients) {
+			if (clientVector.clientID == clientInfo->clientID) {
+				Serialize(&Server_bufs, buffer, sizeof(char) * BUFSIZE);
+				send(clientVector.socket, buffer, sizeof(char) * BUFSIZE, 0);
+			}
+		}
+		// 모든 클라이언트 정보 전달
+		for (auto& clientVector : clients) {
+			Serialize(&Server_bufs, buffer, sizeof(char) * BUFSIZE);
+			send(clientVector.socket, buffer, sizeof(char) * BUFSIZE, 0);
+		}
 
-		// 읽기 완료 이벤트를 시그널 상태로 변경
-		SetEvent(ClientRecvEvent[0]);
-
-		// ObjectThread에서 데이터 처리 이벤트를 기다림
-		WaitForSingleObject(ClientRecvEvent[1], INFINITE);
-
-		// 메시지 구성
-		EventQueue message;
-		message.msgType = 1; // 예: 메시지 종류 식별을 위한 타입 설정
-
-		// 메시지에 필요한 데이터 설정
-		client->getBuffer(buf);			// 버퍼값 받아오기
-		client->returnBuffer(buf);		// 처리 후 버퍼 저장
-		client->EnqueueMsg(message);	// 메시지 큐에 메시지 추가
-
-		// 클라이언트로 데이터 보내기 (원하는 처리에 따라 수정)
-		ResetEvent(bufferAccess);
-		Serialize(&buf, buffer, sizeof(char) * BUFSIZE);
-		send(client->getClientSocket(), buffer, sizeof(char) * BUFSIZE, 0);
-		SetEvent(bufferAccess);
-
-		WaitForSingleObject(InteractiveEvent, INFINITE);
+		/*Serialize(&Server_bufs, buffer, sizeof(char) * BUFSIZE);
+		send(server->getClientSocket(), buffer, sizeof(char) * BUFSIZE, 0);*/
+		ResetEvent(clientInfo->clientEvent);
 	}
 
-	clientNum.erase(clientNum.begin() + client->getClientNum());
-	closesocket(client->getClientSocket());
+	delete server;
 	return 0;
 }
 
-int main(void)
+int main()
 {
-	//오류 확인을 위한 리턴 벨류 변수
 	int retval;
 
-	//원속 버전 요청, 라이브러리(WS2_32.DLL) 초기화 
+	// 윈속 초기화
 	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) 
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
 		return 1;
-
-	// 소켓 생성이 잘 되었는지 오류 확인
-	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (listen_sock == INVALID_SOCKET) err_display("socket()"); 
-
-	// bind()
-	SOCKADDR_IN serveraddr;
-	ZeroMemory(&serveraddr, sizeof(serveraddr));		//서버 addr 메모리 초기화
-	serveraddr.sin_family = AF_INET;					// 소켓 주소체계
-	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);		//ip주소용 32비트 구조체
-	serveraddr.sin_port = htons(nPort);					//포트번호를 네트워크 바이트 오더로 변경
-	retval = bind(listen_sock, (SOCKADDR*)&serveraddr, 
-		sizeof(serveraddr));							//로컬주소를 소켓에 연결 후 오류 처리를 위해 리턴벨류 삽입
-	if (retval == SOCKET_ERROR) err_display("bind()");	// bind()가 제대로 되었는지 오류 확인
-
-	// listen()
-	retval = listen(listen_sock, SOMAXCONN);				// 연결대기 상태 제작후 오류 확인을 위한 리턴벨류 삽입
-	if (retval == SOCKET_ERROR) err_display("listen()");	// 연결 대기상태의 오류 확인
-
-
-	//서버용 스레드 생성
-	server = new ObjectMain();
-
-	// 이벤트 초기화
-	ClientRecvEvent[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
-	ClientRecvEvent[1] = CreateEvent(NULL, FALSE, FALSE, NULL);
-	InteractiveEvent = CreateEvent(NULL, FALSE, TRUE, NULL);
-	bufferAccess = CreateEvent(NULL, FALSE, FALSE, NULL);
-	if (bufferAccess == NULL) {
-		std::cerr << "Failed to create buffer event!" << std::endl;
-		return 0;
 	}
 
-	// 데이터 통신에 사용할 변수
-	SOCKADDR_IN clientaddr;		//주소 받기용 구조체
-	int addrlen;				// 주소 길이 확인을 위한 변수
+	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (listen_sock == INVALID_SOCKET) { err_display("socket()"); }
+
+	// bind
+	SOCKADDR_IN serveraddr;
+	ZeroMemory(&serveraddr, sizeof(serveraddr));
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	serveraddr.sin_port = htons(nPort);
+	retval = bind(listen_sock, (SOCKADDR*)&serveraddr, sizeof(serveraddr));
+	if (retval == SOCKET_ERROR) err_display("bind()");
+
+	// listen
+	retval = listen(listen_sock, SOMAXCONN);
+	if (retval == SOCKET_ERROR) { err_display("listen()"); }
+
+	// WSAAsyncSelect
+	//retval = WSAAsyncSelect(listen_sock, )
+
+	// 통신에 사용할 변수
+	SOCKADDR_IN clientaddr;
+	int addrlen;
 	int client_count = 0;
+	ClientInfo newClient;
+
+	// 서버 관리
+	clients.reserve(4);
+	ClientInfo tempClient = { 0, 0, 0 };
+	clients.assign(4, tempClient);
+	//Server_bufVector.reserve(4);
+	memset(Server_bufArray, 0, sizeof(Send_datatype) * 4);
+
+	// 이벤트 초기화
+	bufferAccess = CreateMutex(NULL, FALSE, NULL);
+	UpdateMutex = CreateMutex(NULL, FALSE, NULL);
 
 	while (1) {
 		SOCKET client_sock;
@@ -249,41 +250,9 @@ int main(void)
 		addrlen = sizeof(clientaddr);
 		client_sock = accept(listen_sock, (SOCKADDR*)&clientaddr, &addrlen);
 
-		//클라이언트 가득 찼으면 멈춤
-		if (clientNum.size() < 5) {
-			if (client_count < 5) {
-				clientNum.push_back(client_count);
-			}
-			else {
-				int availableSlot = -1;
-				for (int check = 0; check < 5; ++check) {
-					bool found = false;
-					for (int i : clientNum) {
-						if (i == check) {
-							found = true;
-							break;
-						}
-					}
-					if (!found) {
-						availableSlot = check;
-						break;
-					}
-				}
-
-				if (availableSlot != -1) {
-					clientNum.push_back(availableSlot);
-				}
-				else {
-					std::cerr << "Server is full!" << std::endl;
-					closesocket(client_sock);
-				}
-			}
-		}
-		else {
-			std::cerr << "Server is full!" << std::endl;
-			closesocket(client_sock);
-			continue; 
-		}
+		//
+		// 다중 클라이언트 관리 코드 생성
+		//
 
 		//소켓타입이 INVALID_SOCKET으로 오류 반환시 알림
 		if (client_sock == INVALID_SOCKET) {
@@ -297,37 +266,41 @@ int main(void)
 		printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",
 			addr, ntohs(clientaddr.sin_port));
 
+		// 접속 클라이언트 ID 생성
+		if (client_count + 1 > 4) {
+			for (auto& info : clients) {
+				if (info.socket == 0) {
+					client_count = (int)info.clientID;
+					break;
+				}
+			}
+			closesocket(client_sock);
+			continue;
+		}
+
+		newClient.socket = client_sock;
+		newClient.clientID = ++client_count;
+		newClient.clientEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+		clients[newClient.clientID - 1] = newClient;
+
 		//스레드 생성
 		HANDLE hThread;
-
-		//클라이언트 초기화
-		ServerMain* client = new ServerMain(client_sock, client_count);
-		
-		hThread = CreateThread(NULL, 0, ClientThread, client, 0, NULL);
-
+		hThread = CreateThread(NULL, 0, ServerThread, &clients[newClient.clientID - 1], 0, NULL);
 		if (hThread == NULL) {
-			delete client;
-		}	
-		else {
-			CloseHandle(hThread);
-		}	
-		
-		//ServerMain* clientInstance = new ServerMain(INVALID_SOCKET, 0);
-		
-		//오브젝트 스레드 생성
-		hThread = CreateThread(NULL, 0, ObjectThread, NULL, 0, NULL); 
-
-		if (hThread == NULL) {
-			cout << "오브젝트 스레드 생성 실패" << endl;
-			return 0;
+			std::cerr << "Cant create Client Thread!" << std::endl;
 		}
 		else {
-			CloseHandle(hThread);
+			clients[newClient.clientID - 1].clientEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+			hThread = CreateThread(NULL, 0, ObjectThread, &clients[newClient.clientID - 1], 0, NULL);
+			if (hThread == NULL) {
+				std::cerr << "ObjectThreading Failed!" << std::endl;
+				return 0;
+			}
+			else { CloseHandle(hThread); }
 		}
 	}
 
 	// 윈속 종료
-	delete server, client;
 	WSACleanup();
 	return 0;
 }
