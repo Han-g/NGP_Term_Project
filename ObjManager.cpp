@@ -70,6 +70,13 @@ void ObjManager::DrawObj(HDC hdc, HINSTANCE hInst, Render* Renderer)
 	}
 }
 
+void ObjManager::UpdateObj(std::vector<obj_info> buf)
+{
+	for (int i = 0; i < MAX_OBJ_NUM; i++) {
+		objects[i]->Update(buf[i]);
+	}
+}
+
 void ObjManager::UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam)
 {
 	g_Interaction->KeyDown(wParam);

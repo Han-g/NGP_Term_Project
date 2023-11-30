@@ -9,7 +9,7 @@
 
 //#define SERVERIP   "127.0.0.1"
 #define SERVERPORT 9000
-#define BUFSIZE    51200
+#define BUFSIZE    50000
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
@@ -17,6 +17,8 @@ WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 HANDLE hMsgThread;                              // 통신 스레드
 DWORD dwMsgThreadID;                            // 통신 스레드 ID
+
+Send_datatype Server_bufArray[4];
 
 // 소켓 통신 스레드 함수
 DWORD WINAPI ClientMain(LPVOID arg);
@@ -39,9 +41,6 @@ Send_datatype buf; // 데이터 송수신 버퍼
 HANDLE hReadEvent, hWriteEvent; // 이벤트
 HWND hSendButton; // 보내기 버튼
 HWND hEdit1, hEdit2; // 에디트 컨트롤
-
-
-void Update();
 
 void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
     // 데이터 크기 확인
@@ -302,7 +301,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         WaitForSingleObject(hMsgThread, INFINITE);
         CloseHandle(hMsgThread);
 
-        delete g_Interaction;
+        if (g_Interaction != NULL) { delete g_Interaction; }
+        
         PostQuitMessage(0);
         break;
     default:
@@ -380,31 +380,31 @@ DWORD WINAPI ClientMain(LPVOID arg)
         buf.wParam = g_game->Key_return();
         char buffer[BUFSIZE];
         memset(buffer, NULL, sizeof(char) * BUFSIZE);
-        Serialize(&buf, buffer, sizeof(char) * BUFSIZE);
 
+        // 클라이언트 정보 전달
+        Serialize(&buf, buffer, sizeof(char) * BUFSIZE);
         retval = send(sock, buffer, sizeof(char) * BUFSIZE, 0);
-        //retval = send(sock, (char*)&buf, sizeof(Send_datatype), 0);
-        if (retval == SOCKET_ERROR) {
+        if (retval == SOCKET_ERROR || retval == 0) {
             break;
         }
         //DisplayText("[TCP 클라이언트] %d바이트를 보냈습니다.\r\n", retval);
 
         // 데이터 받기
+        
+        size_t receivedData = 0;
         size_t dataSize = 0;
-        retval = recv(sock, reinterpret_cast<char*>(&dataSize), sizeof(size_t), 0);
 
-        retval = recv(sock, buffer, dataSize, MSG_WAITALL);
-        //retval = recv(sock, (char*)&buf, retval, MSG_WAITALL);
+        // 수정된 클라이언트 정보 받아오기
+        retval = recv(sock, buffer, sizeof(char)*BUFSIZE, MSG_WAITALL);
         DeSerialize(&buf, buffer, sizeof(Send_datatype));
-
-        if (retval == SOCKET_ERROR || retval == 0) {
-            break;
+        if (buf.object_info.size() > 0) { g_game->updateObjINFO(buf); }
+        
+        // 전체 클라이언트 정보 받아오기
+        for (int i = 0; i < 4; i++) {
+            retval = recv(sock, buffer, sizeof(char) * BUFSIZE, MSG_WAITALL);
+            DeSerialize(&buf, buffer, sizeof(Send_datatype));
+            Server_bufArray[i] = buf;
         }
-
-        // 받은 데이터 출력
-        //buf[retval] = '\0';
-        //DisplayText("[TCP 클라이언트] %d바이트를 받았습니다.\r\n", retval);
-        //DisplayText("[받은 데이터] %s\r\n", buf);
 
         EnableWindow(hSendButton, TRUE); // 보내기 버튼 활성화
         SetEvent(hReadEvent); // 읽기 완료 알림

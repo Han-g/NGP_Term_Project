@@ -85,3 +85,8 @@ void GameSet::getObjINFO(Send_datatype* buf)
 			buf->object_info.push_back(temp[i]);
 	}
 }
+
+void GameSet::updateObjINFO(Send_datatype buf)
+{
+	m_ObjManager->UpdateObj(buf.object_info);
+}

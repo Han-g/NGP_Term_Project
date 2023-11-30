@@ -21,6 +21,7 @@ public:
 	bool DelObj(int index);
 
 	void DrawObj(HDC hdc, HINSTANCE hInst, Render* renderer);
+	void UpdateObj(std::vector<obj_info> buf);
 	void UpdateAll(Obj_Interaction* g_Interaction, WPARAM wParam);
 	obj_info* getObj_Info();
 	void getBubbleTime(DWORD Time);

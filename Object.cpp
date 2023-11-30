@@ -47,9 +47,9 @@ obj_info Object::returninfo()
 	return info;
 }
 
-void Object::Update()
+void Object::Update(obj_info buf)
 {
-	
+	info = buf;
 }
 
 void Object::Draw(HDC hdc, HINSTANCE hInst, Render* Renderer)

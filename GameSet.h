@@ -18,6 +18,7 @@ public:
 	const int Key_return();
 	void getTime(DWORD Time);
 	void getObjINFO(Send_datatype* buf);
+	void updateObjINFO(Send_datatype buf);
 
 private:
 	Render* m_Renderer;
