@@ -6,6 +6,7 @@
 
 #define window_size_w	1040
 #define window_size_d	780
+#define nPort 9000
 
 #include <Windows.h>
 #include <stdlib.h>
@@ -15,6 +16,7 @@
 #include <time.h>
 #include <math.h>
 #include <fstream>
+#include <iostream>
 #include <queue>
 #include <chrono>
 #include <ctime>
@@ -56,10 +58,16 @@ typedef struct obj_info {
 typedef struct Send_datatype {
 	std::vector<obj_info> object_info;
 	int wParam;
-	double GameTime;
+	int GameTime;
 } Send_datatype;
 
 struct EventQueue {
 	Send_datatype data;
 	int msgType;
+};
+
+struct ClientInfo {
+	SOCKET socket;
+	DWORD clientID;
+	HANDLE clientEvent;
 };
