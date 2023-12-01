@@ -35,6 +35,8 @@ DWORD g_Time = 0;
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
 
+bool Exitcode = false;
+
 char* SERVERIP = (char*)"127.0.0.1";
 SOCKET sock; // 소켓
 Send_datatype buf; // 데이터 송수신 버퍼
@@ -152,7 +154,7 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
         Caption = GetSystemMetrics(SM_CYCAPTION);
 
     // 기본 메시지 루프입니다:
-    while (GetMessage(&msg, nullptr, 0, 0))
+    while (!Exitcode &&GetMessage(&msg, nullptr, 0, 0))
     {
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
@@ -160,6 +162,12 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
         g_game->getTime(g_Time++);
+
+        DWORD exitCode;
+        if (GetExitCodeThread(hMsgThread, &exitCode) && exitCode != STILL_ACTIVE)
+        {
+            Exitcode = true;
+        }
     }
 
     return (int) msg.wParam;
@@ -402,7 +410,7 @@ DWORD WINAPI ClientMain(LPVOID arg)
         // 전체 클라이언트 정보 받아오기
         for (int i = 0; i < 4; i++) {
             retval = recv(sock, buffer, sizeof(char) * BUFSIZE, MSG_WAITALL);
-            DeSerialize(&buf, buffer, sizeof(Send_datatype));
+            DeSerialize(&buf, buffer, BUFSIZE);
             Server_bufArray[i] = buf;
         }
 
@@ -419,6 +427,7 @@ DWORD WINAPI ClientMain(LPVOID arg)
 
     closesocket(sock);
     WSACleanup();
+    Exitcode = TRUE;
 
     CloseHandle(hReadEvent);
     CloseHandle(hWriteEvent);
