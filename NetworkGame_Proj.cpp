@@ -403,7 +403,7 @@ DWORD WINAPI ClientMain(LPVOID arg)
         size_t dataSize = 0;
 
         // 수정된 클라이언트 정보 받아오기
-        retval = recv(sock, buffer, sizeof(char)*BUFSIZE, MSG_WAITALL);
+        retval = recv(sock, buffer, BUFSIZE, MSG_WAITALL);
         DeSerialize(&buf, buffer, sizeof(Send_datatype));
         if (buf.object_info.size() > 0) { g_game->updateObjINFO(buf); }
         

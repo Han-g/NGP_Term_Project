@@ -4,16 +4,32 @@
 
 #define BUFSIZE 50000
 
-char buffer[BUFSIZE];
-Send_datatype Server_bufs;
-//ClientManager* client;
-//ObjectManager* object;
+char buffer[BUFSIZE + 1];
+
+struct ServerData
+{
+	SOCKET socket;
+	Send_datatype buf;
+	int sendbytes, recvbytes;
+};
+
+ServerData* serverData[4];
+int nTotalSockets = 0;
+
+// 소켓 정보 관리 함수
+bool AddSocketInfo(SOCKET sock);
+void RemoveSocketInfo(int nIndex);
+
+static void Serialize(Send_datatype* data, char* buf, size_t bufSize);
+static void DeSerialize(Send_datatype* data, char* buf, size_t bufSize);
 
 static ULONGLONG Frame = 10.0f;
 static float ClientTime[2] = { 0.f, 0.f };
 static float Time = 0.f;
+
 std::vector<ClientInfo> clients;
 std::vector<Send_datatype> Server_bufVector;
+Send_datatype Server_bufs;
 Send_datatype Server_bufArray[4];
 
 // Event 선언
@@ -204,10 +220,9 @@ int main()
 
 	// 윈속 초기화
 	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		return 1;
-	}
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) { return 1; }
 
+	// 소켓 생성
 	SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (listen_sock == INVALID_SOCKET) { err_display("socket()"); }
 
@@ -224,83 +239,165 @@ int main()
 	retval = listen(listen_sock, SOMAXCONN);
 	if (retval == SOCKET_ERROR) { err_display("listen()"); }
 
-	// WSAAsyncSelect
-	//retval = WSAAsyncSelect(listen_sock, )
+	// 넌블로킹 소켓 전환
+	u_long on = 1;
+	retval = ioctlsocket(listen_sock, FIONBIO, &on);
+	if (retval == SOCKET_ERROR) { err_display("ioctlsocket()"); }
 
-	// 통신에 사용할 변수
-	SOCKADDR_IN clientaddr;
+	fd_set rset, wset;
+	int nready;
+	SOCKET client_sock;
+	struct sockaddr_in clientaddr;
 	int addrlen;
-	int client_count = 0;
-	ClientInfo newClient;
-
-	// 서버 관리
-	clients.reserve(4);
-	ClientInfo tempClient = { 0, 0, 0 };
-	clients.assign(4, tempClient);
-	//Server_bufVector.reserve(4);
-	memset(Server_bufArray, 0, sizeof(Send_datatype) * 4);
-
-	// 이벤트 초기화
-	bufferAccess = CreateMutex(NULL, FALSE, NULL);
-	UpdateMutex = CreateMutex(NULL, FALSE, NULL);
 
 	while (1) {
-		SOCKET client_sock;
-		// accept
-		addrlen = sizeof(clientaddr);
-		client_sock = accept(listen_sock, (SOCKADDR*)&clientaddr, &addrlen);
-
-		//
-		// 다중 클라이언트 관리 코드 생성
-		//
-
-		//소켓타입이 INVALID_SOCKET으로 오류 반환시 알림
-		if (client_sock == INVALID_SOCKET) {
-			err_display("accept()");
-			break;
+		// 소켓 셋 초기화
+		FD_ZERO(&rset);
+		FD_ZERO(&wset);
+		FD_SET(listen_sock, &rset);
+		for (int i = 0; i < nTotalSockets; i++) {
+			if (serverData[i]->recvbytes > serverData[i]->sendbytes) {
+				FD_SET(serverData[i]->socket, &wset);
+			}
+			else {
+				FD_SET(serverData[i]->socket, &rset);
+			}
 		}
 
-		// 접속한 클라이언트 정보 출력
-		char addr[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
-		printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",
-			addr, ntohs(clientaddr.sin_port));
+		// select()
+		nready = select(0, &rset, &wset, NULL, NULL);
+		if (nready == SOCKET_ERROR) err_quit("select()");
 
-		// 접속 클라이언트 ID 생성
-		if (client_count + 1 > 4) {
-			for (auto& info : clients) {
-				if (info.socket == 0) {
-					client_count = (int)info.clientID;
-					break;
+		// 소켓 셋 검사(1): 클라이언트 접속 수용
+		if (FD_ISSET(listen_sock, &rset)) {
+			addrlen = sizeof(clientaddr);
+			client_sock = accept(listen_sock,
+				(struct sockaddr*)&clientaddr, &addrlen);
+			if (client_sock == INVALID_SOCKET) {
+				err_display("accept()");
+				break;
+			}
+			else {
+				// 클라이언트 정보 출력
+				char addr[INET_ADDRSTRLEN];
+				inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
+				printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",
+					addr, ntohs(clientaddr.sin_port));
+				// 소켓 정보 추가: 실패 시 소켓 닫음
+				if (!AddSocketInfo(client_sock)) { closesocket(client_sock); }
+			}
+			if (--nready <= 0) { continue; }
+		}
+
+		// 소켓 셋 검사(2): 데이터 통신
+		for (int i = 0; i < nTotalSockets; i++) {
+			ServerData* ptr = serverData[i];
+
+			if (FD_ISSET(ptr->socket, &rset)) {
+				// 데이터 받기
+				retval = recv(ptr->socket, buffer, BUFSIZE, 0);
+				if (retval == SOCKET_ERROR) {
+					err_display("recv()");
+					RemoveSocketInfo(i);
+				}
+				else if (retval == 0) {
+					RemoveSocketInfo(i);
+				}
+				else {
+					DeSerialize(&ptr->buf, buffer, BUFSIZE);
+					ptr->recvbytes = retval;
+					ptr->sendbytes = 0;
+					// 클라이언트 정보 얻기
+					addrlen = sizeof(clientaddr);
+					getpeername(ptr->socket, (struct sockaddr*)&clientaddr, &addrlen);
+					char addr[INET_ADDRSTRLEN];
+					inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
+					printf("[TCP/%s:%d]\n", addr, ntohs(clientaddr.sin_port));
 				}
 			}
-			closesocket(client_sock);
-			continue;
-		}
+			else if (FD_ISSET(ptr->socket, &wset)) {
+				// 데이터 보내기
+				Serialize(&ptr->buf, buffer, BUFSIZE);
+				retval = send(ptr->socket, buffer + ptr->sendbytes,
+					ptr->recvbytes - ptr->sendbytes, 0);
+				if (retval == SOCKET_ERROR) {
+					err_display("send()");
+					RemoveSocketInfo(i);
+				}
+				else {
+					ptr->sendbytes += retval;
+					if (ptr->recvbytes == ptr->sendbytes) {
+						ptr->recvbytes = ptr->sendbytes = 0;
+					}
+				}
 
-		newClient.socket = client_sock;
-		newClient.clientID = ++client_count;
-		newClient.clientEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-		clients[newClient.clientID - 1] = newClient;
+				for (int i = 0; i < 4; ++i) {
+					if (i < nTotalSockets) {
+						Serialize(&serverData[i]->buf, buffer, BUFSIZE);
+						retval = send(ptr->socket, buffer + serverData[i]->sendbytes,
+							serverData[i]->recvbytes - serverData[i]->sendbytes, 0);
+						if (retval == SOCKET_ERROR) {
+							err_display("send()");
+							RemoveSocketInfo(i);
+						}
+						else {
+							serverData[i]->sendbytes += retval;
+							if (serverData[i]->recvbytes == serverData[i]->sendbytes) {
+								serverData[i]->recvbytes = serverData[i]->sendbytes = 0;
+							}
+						}
+					}
+					else {
+						char* tem = new char[BUFSIZE];
+						memset(tem, 0, BUFSIZE);
+						retval = send(ptr->socket, tem, BUFSIZE, 0);
+					}
+				}
 
-		//스레드 생성
-		HANDLE hThread;
-		hThread = CreateThread(NULL, 0, ServerThread, &clients[newClient.clientID - 1], 0, NULL);
-		if (hThread == NULL) {
-			std::cerr << "Cant create Client Thread!" << std::endl;
-		}
-		else {
-			clients[newClient.clientID - 1].clientEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-			hThread = CreateThread(NULL, 0, ObjectThread, &clients[newClient.clientID - 1], 0, NULL);
-			if (hThread == NULL) {
-				std::cerr << "ObjectThreading Failed!" << std::endl;
-				return 0;
 			}
-			else { CloseHandle(hThread); }
 		}
 	}
+}
 
-	// 윈속 종료
-	WSACleanup();
-	return 0;
+// 소켓 정보 추가
+bool AddSocketInfo(SOCKET sock)
+{
+	if (nTotalSockets >= 4) {
+		printf("[오류] 소켓 정보를 추가할 수 없습니다!\n");
+		return false;
+	}
+	ServerData* ptr = new ServerData;
+	if (ptr == NULL) {
+		printf("[오류] 메모리가 부족합니다!\n");
+		return false;
+	}
+	ptr->socket = sock;
+	ptr->recvbytes = 0;
+	ptr->sendbytes = 0;
+	serverData[nTotalSockets++] = ptr;
+	return true;
+}
+
+// 소켓 정보 삭제
+void RemoveSocketInfo(int nIndex)
+{
+	ServerData* ptr = serverData[nIndex];
+
+	// 클라이언트 정보 얻기
+	struct sockaddr_in clientaddr;
+	int addrlen = sizeof(clientaddr);
+	getpeername(ptr->socket, (struct sockaddr*)&clientaddr, &addrlen);
+
+	// 클라이언트 정보 출력
+	char addr[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
+	printf("[TCP 서버] 클라이언트 종료: IP 주소=%s, 포트 번호=%d\n",
+		addr, ntohs(clientaddr.sin_port));
+
+	// 소켓 닫기
+	closesocket(ptr->socket);
+	delete ptr;
+
+	if (nIndex != (nTotalSockets - 1)) { serverData[nIndex] = serverData[nTotalSockets - 1]; }
+	--nTotalSockets;
 }
