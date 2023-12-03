@@ -79,10 +79,13 @@ void GameSet::getObjINFO(Send_datatype* buf)
 {
 	obj_info* temp = m_ObjManager->getObj_Info();
 	buf->object_info.clear();
+	buf->object_info.reserve(MAX_OBJ_NUM);
+	//std::vector<obj_info>().swap(buf->object_info);
 
 	for (int i = 0; i < MAX_OBJ_NUM; i++) {
-		if(temp[i].posX)
+		if (checkStatus(temp[i].type)) {
 			buf->object_info.push_back(temp[i]);
+		}
 	}
 }
 

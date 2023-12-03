@@ -1,18 +1,19 @@
 #include "Common.h"
 #include "ClientManager.h"
 #include "ObjectManager.h"
-
-#define BUFSIZE 50000
+//#include "Network.h"
 
 char buffer[BUFSIZE + 1];
 
-struct ServerData
-{
-	SOCKET socket;
-	Send_datatype buf;
-	int sendbytes, recvbytes;
-};
+static ULONGLONG Frame = 10.0f;
+static float ClientTime[2] = { 0.f, 0.f };
+static float Time = 0.f;
+std::atomic<int> frame(0);
 
+//NetworkThread* networkThread;
+std::mutex BufferMutex;
+HANDLE ObjConnet[4];
+Send_datatype InputBuf, OutputBuf;
 ServerData* serverData[4];
 int nTotalSockets = 0;
 
@@ -26,19 +27,82 @@ static void DeSerialize(Send_datatype* data, char* buf, size_t bufSize);
 void ObjectSaver(DWORD clientID, const Send_datatype& data);
 Send_datatype ObjectGetter(DWORD clientID);
 
-static ULONGLONG Frame = 10.0f;
-static float ClientTime[2] = { 0.f, 0.f };
-static float Time = 0.f;
+void ObjectThread(int arg)
+{
+	//ClientInfo* clientInfo = static_cast<ClientInfo*>(arg);
+	int clientID = (int)(arg);
+	ObjectManager* object = new ObjectManager();
+	ObjConnet[clientID] = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-std::vector<ClientInfo> clients;
-std::vector<Send_datatype> Server_bufVector;
-Send_datatype Server_bufs;
-Send_datatype Server_bufArray[4];
+	while (1)
+	{
+		DWORD ret = WaitForSingleObject(ObjConnet[clientID], INFINITE);
+		//std::cout << "Object Thread Section" << std::endl;
 
-// Event 선언
-HANDLE bufferAccess;
-HANDLE UpdateMutex;
+		std::unique_lock<std::mutex> lock(BufferMutex);
+		switch (ret)
+		{
+		case WAIT_TIMEOUT:
+		case WAIT_FAILED:
+			GetLastError();
+			delete object;
+			break;
+		case WAIT_OBJECT_0:
+			// bufferAccess 이벤트 설정 시 수행	
+			object->GameSet(ObjectGetter(clientID));
+			object->Key_Check();
+			ObjectSaver(clientID, object->Update());
+			break;
+		default:
+			break;
+		}
 
+		lock.unlock();
+		ResetEvent(ObjConnet[clientID]);
+
+		// send 수행 이벤트
+		if (serverData[clientID]->socket == 0) {
+			break;
+		}
+
+	}
+
+	delete object;
+}
+
+void ServerThread()
+{
+	//int frame = 0;
+	float fTime = 0.f;
+	ULONGLONG StartTime = GetTickCount64();
+	ULONGLONG StartTime2 = GetTickCount64();
+
+	while (1)
+	{
+		ULONGLONG gameTime = GetTickCount64();
+		if (gameTime - StartTime >= Frame) {
+			fTime = GetTickCount64() - StartTime;	// 현시간과 이전 프레임 시간 차로 시간계산
+			fTime = fTime / 1000.0f;				// 프레임 1초에 60으로 고정
+			ClientTime[0] = ClientTime[1] = fTime;	// 클라이언트 프레임 동기화
+
+			//fTime의 시간값을 받는 함수 추가.
+			frame++;
+			StartTime = GetTickCount64();
+		}
+
+		if (gameTime - StartTime2 >= 1000)
+		{
+			//std::cout << "FPS : \r" << frame << std::endl;
+			StartTime2 = GetTickCount64();
+			frame = 0;
+		}
+
+		// 스레드를 일정 시간동안 대기시킴 (예: 16ms 대기 = 60 FPS)
+		//std::this_thread::sleep_for(std::chrono::milliseconds(16));
+	}
+
+	return;
+}
 
 int main()
 {
@@ -70,13 +134,16 @@ int main()
 	retval = ioctlsocket(listen_sock, FIONBIO, &on);
 	if (retval == SOCKET_ERROR) { err_display("ioctlsocket()"); }
 
-	fd_set rset, wset;
-	int nready;
+	std::thread objectThread[4];
+	std::thread serverTime(ServerThread);
+
 	SOCKET client_sock;
+	int nready, addrlen;
+	fd_set rset, wset;
 	struct sockaddr_in clientaddr;
-	int addrlen;
 
 	while (1) {
+		//std::cout << "Main Thread Section" << std::endl;
 		// 소켓 셋 초기화
 		FD_ZERO(&rset);
 		FD_ZERO(&wset);
@@ -111,17 +178,24 @@ int main()
 					addr, ntohs(clientaddr.sin_port));
 				// 소켓 정보 추가: 실패 시 소켓 닫음
 				if (!AddSocketInfo(client_sock)) { closesocket(client_sock); }
+
+				if (nTotalSockets > 0) {
+					objectThread[nTotalSockets - 1] = std::thread(ObjectThread, nTotalSockets - 1);
+				}
 			}
 			if (--nready <= 0) { continue; }
 		}
 
 		// 소켓 셋 검사(2): 데이터 통신
 		for (int i = 0; i < nTotalSockets; i++) {
+			std::unique_lock<std::mutex> lock(BufferMutex);
 			ServerData* ptr = serverData[i];
+			lock.unlock();
 
 			if (FD_ISSET(ptr->socket, &rset)) {
 				// 데이터 받기
 				retval = recv(ptr->socket, buffer, BUFSIZE, 0);
+
 				if (retval == SOCKET_ERROR) {
 					err_display("recv()");
 					RemoveSocketInfo(i);
@@ -130,23 +204,37 @@ int main()
 					RemoveSocketInfo(i);
 				}
 				else {
+					SetEvent(ObjConnet[i]);
 					// 클라이언트 정보 얻기
 					DeSerialize(&ptr->buf, buffer, BUFSIZE);
+					/*if (ptr->buf.wParam != 0) {
+						std::cout << "Key Input" << std::endl;
+					}*/
+					std::cout << ptr->buf.wParam << std::endl;
+
 					ptr->recvbytes = retval;
 					ptr->sendbytes = 0;
+					std::unique_lock<std::mutex> lock(BufferMutex);
 					serverData[i] = ptr;
+					lock.unlock();
 
 					addrlen = sizeof(clientaddr);
 					getpeername(ptr->socket, (struct sockaddr*)&clientaddr, &addrlen);
 					char addr[INET_ADDRSTRLEN];
 					inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
+
 				}
 			}
 			else if (FD_ISSET(ptr->socket, &wset)) {
+				//objectThread[i].join();
 				// 데이터 보내기
+				ptr->buf.GameTime = frame.load();
 				Serialize(&ptr->buf, buffer, BUFSIZE);
 				retval = send(ptr->socket, buffer + ptr->sendbytes,
 					ptr->recvbytes - ptr->sendbytes, 0);
+
+				std::cout << "send Server : " << serverData[i]->buf.wParam << std::endl;
+
 				if (retval == SOCKET_ERROR) {
 					err_display("send()");
 					RemoveSocketInfo(i);
@@ -154,7 +242,6 @@ int main()
 				else {
 					ptr->sendbytes += retval;
 					if (ptr->recvbytes == ptr->sendbytes) {
-						//ptr->recvbytes = 
 						ptr->sendbytes = 0;
 					}
 				}
@@ -164,15 +251,20 @@ int main()
 						Serialize(&serverData[i]->buf, buffer, BUFSIZE);
 						retval = send(ptr->socket, buffer + serverData[i]->sendbytes,
 							serverData[i]->recvbytes - serverData[i]->sendbytes, 0);
+
+						std::cout << i + 1 << " Client send : " << serverData[i]->buf.wParam << std::endl;
+
 						if (retval == SOCKET_ERROR) {
 							err_display("send()");
 							RemoveSocketInfo(i);
 						}
 						else {
+							std::unique_lock<std::mutex> lock(BufferMutex);
 							serverData[i]->sendbytes += retval;
 							if (serverData[i]->recvbytes == serverData[i]->sendbytes) {
 								serverData[i]->recvbytes = serverData[i]->sendbytes = 0;
 							}
+							lock.unlock();
 						}
 					}
 					else {
@@ -186,6 +278,9 @@ int main()
 			}
 		}
 	}
+
+	serverTime.join();
+	return 0;
 }
 
 // 소켓 정보 추가
@@ -198,12 +293,25 @@ bool AddSocketInfo(SOCKET sock)
 	ServerData* ptr = new ServerData;
 	if (ptr == NULL) {
 		printf("[오류] 메모리가 부족합니다!\n");
+		delete ptr;
 		return false;
 	}
 	ptr->socket = sock;
 	ptr->recvbytes = 0;
 	ptr->sendbytes = 0;
-	serverData[nTotalSockets++] = ptr;
+	for (int i = 0; i < 4; ++i) {
+		if (serverData[i] == NULL) {
+			std::unique_lock<std::mutex> lock(BufferMutex);
+			serverData[i] = ptr;
+			lock.unlock();
+			break;
+		}
+		if (i == 3) {
+			printf("[오류] 소켓 정보를 추가할 수 없습니다!\n");
+			return false;
+		}
+	}
+	nTotalSockets++;
 	return true;
 }
 
@@ -227,107 +335,18 @@ void RemoveSocketInfo(int nIndex)
 	closesocket(ptr->socket);
 	delete ptr;
 
-	if (nIndex != (nTotalSockets - 1)) { serverData[nIndex] = serverData[nTotalSockets - 1]; }
+	if (nIndex != (nTotalSockets - 1)) {
+		for (int i = nIndex; i < 3; ++i) {
+			std::unique_lock<std::mutex> lock(BufferMutex);
+			serverData[i] = serverData[i + 1];
+			lock.unlock();
+		}
+		std::unique_lock<std::mutex> lock(BufferMutex);
+		serverData[nTotalSockets - 1] = NULL;
+		lock.unlock();
+	}
+	ResetEvent(ObjConnet[nTotalSockets - 1]);
 	--nTotalSockets;
-}
-
-DWORD WINAPI ObjectThread(LPVOID arg)
-{
-	ClientInfo* clientInfo = static_cast<ClientInfo*>(arg);
-	ObjectManager* object = new ObjectManager();
-
-	while (1)
-	{
-		// bufferAccess 이벤트 설정 시 수행
-		object->GameSet(ObjectGetter(clientInfo->clientID));
-		WaitForSingleObject(clientInfo->clientEvent, INFINITE);
-		object->Key_Check();
-		//ObjectSaver(clientInfo->clientID, Server_bufVector[(int)clientInfo->clientID-1]);
-		ObjectSaver(clientInfo->clientID, Server_bufArray[(int)clientInfo->clientID - 1]);
-
-		ResetEvent(clientInfo->clientEvent);
-		// send 수행 이벤트
-		if (clients[clientInfo->clientID - 1].socket == 0) {
-			break;
-		}
-	}
-
-	delete object;
-	return 0;
-}
-
-
-DWORD WINAPI ServerThread(LPVOID arg)
-{
-	ClientInfo* clientInfo = static_cast<ClientInfo*>(arg);
-	ClientManager* server = new ClientManager(clientInfo->socket, clientInfo->clientID);
-
-	int frame = 0;
-	float fTime = 0.f;
-	ULONGLONG StartTime = GetTickCount64();
-	ULONGLONG StartTime2 = GetTickCount64();
-
-	while (1)
-	{
-		//WaitForSingleObject(clientInfo->clientEvent, INFINITE);
-		if (GetTickCount64() - StartTime >= Frame) {
-			fTime = GetTickCount64() - StartTime;	// 현시간과 이전 프레임 시간 차로 시간계산
-			fTime = fTime / 1000.0f;				// 프레임 1초에 60으로 고정
-			ClientTime[0] = ClientTime[1] = fTime;	// 클라이언트 프레임 동기화
-
-			//fTime의 시간값을 받는 함수 추가.
-			frame++;
-			StartTime = GetTickCount64();
-		}
-
-		if (GetTickCount64() - StartTime >= 1000)
-		{
-			std::cout << "FPS : " << frame << std::endl;
-			StartTime2 = GetTickCount64();
-			frame = 0;
-		}
-
-		// 클라이언트에게서 오브젝트 정보 받아오기
-		int retval = recv(clientInfo->socket, buffer, sizeof(char) * BUFSIZE, 0);
-		if (retval == SOCKET_ERROR || retval == 0) {
-			err_display("recv()");
-			clients[(int)clientInfo->clientID - 1].socket = 0;
-			memset(&Server_bufArray[(int)clientInfo->clientID - 1], 0, sizeof(Send_datatype));
-			break;
-		}
-		else {
-			//Server_bufs = ObjectGetter(clientInfo->clientID);
-			DeSerialize(&Server_bufs, buffer, sizeof(char) * BUFSIZE);
-			ObjectSaver(clientInfo->clientID, Server_bufs);
-			// 모든 클라이언트 오브젝트 관리
-			if (Server_bufArray[(int)clientInfo->clientID - 1].wParam != 0) {
-				SetEvent(clientInfo->clientEvent);
-			}
-
-			//server->getBuffer(ObjectGetter(clientInfo->clientID));
-			//ObjectSaver(clientInfo->clientID, server->returnBuffer());
-		}
-
-		// 배정된 ClientThread의 클라이언트 정보 전달
-		for (auto& clientVector : clients) {
-			if (clientVector.clientID == clientInfo->clientID) {
-				Serialize(&Server_bufs, buffer, sizeof(char) * BUFSIZE);
-				send(clientVector.socket, buffer, sizeof(char) * BUFSIZE, 0);
-			}
-		}
-		// 모든 클라이언트 정보 전달
-		for (auto& clientVector : clients) {
-			Serialize(&Server_bufs, buffer, sizeof(char) * BUFSIZE);
-			send(clientVector.socket, buffer, sizeof(char) * BUFSIZE, 0);
-		}
-
-		/*Serialize(&Server_bufs, buffer, sizeof(char) * BUFSIZE);
-		send(server->getClientSocket(), buffer, sizeof(char) * BUFSIZE, 0);*/
-		ResetEvent(clientInfo->clientEvent);
-	}
-
-	delete server;
-	return 0;
 }
 
 static void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
@@ -379,32 +398,25 @@ static void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
 
 void ObjectSaver(DWORD clientID, const Send_datatype& data)
 {
-	WaitForSingleObject(bufferAccess, INFINITE);
-	/*if (Server_bufVector.empty()) {
-		Server_bufVector.push_back(data);
+	//std::unique_lock<std::mutex> lock(BufferMutex);
+	if (data.object_info.capacity() != 0) {
+		serverData[(int)clientID]->buf.GameTime = data.GameTime;
+		serverData[(int)clientID]->buf.wParam = data.wParam;
+		if (serverData[(int)clientID]->buf.object_info.empty()) {
+			serverData[(int)clientID]->buf.object_info = data.object_info;
+		}
+		else {
+			serverData[(int)clientID]->buf.object_info.clear();
+			serverData[(int)clientID]->buf.object_info = data.object_info;
+		}
 	}
-	else {
-		Server_bufVector[(int)clientID-1] = data;
-	}*/
-	Server_bufArray[(int)clientID - 1].GameTime = data.GameTime;
-	Server_bufArray[(int)clientID - 1].wParam = data.wParam;
-	if (Server_bufArray[(int)clientID - 1].object_info.empty()) {
-		Server_bufArray[(int)clientID - 1].object_info = data.object_info;
-	}
-	else {
-		Server_bufArray[(int)clientID - 1].object_info.clear();
-		Server_bufArray[(int)clientID - 1].object_info = data.object_info;
-	}
-	ReleaseMutex(bufferAccess);
+	//lock.unlock();
 }
 Send_datatype ObjectGetter(DWORD clientID)
 {
-	WaitForSingleObject(bufferAccess, INFINITE);
 	Send_datatype copy;
-	/*if (Server_bufVector.size() > 0) {
-		copy = Server_bufVector[(int)clientID-1];
-	}*/
-	copy = Server_bufArray[(int)clientID - 1];
-	ReleaseMutex(bufferAccess);
+	//std::unique_lock<std::mutex> lock(BufferMutex);
+	copy = serverData[(int)clientID]->buf;
+	//lock.unlock();
 	return copy;
 }

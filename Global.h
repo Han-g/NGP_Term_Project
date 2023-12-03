@@ -37,6 +37,32 @@
 #define Bg_tile3	13
 #define Bg_tile4	14
 
+static bool checkStatus(int status);
+static bool checkStatus(int status) {
+	switch (status)
+	{
+	case Non_Obj:
+	case Char_Idle:
+	case Char_Right:
+	case Char_Left:
+	case Char_Up:
+	case Char_Down:
+	case Bubble_Idle:
+	case Bubble_bomb:
+	case Non_Bubble:
+	case BackGround:
+	case Bg_tile1:
+	case Bg_tile2:
+	case Bg_tile3:
+	case Bg_tile4:
+		return TRUE;
+
+	default:
+		return FALSE;
+		break;
+	}
+}
+
 // Object struct
 typedef struct char_ability {
 	int bubble_len;

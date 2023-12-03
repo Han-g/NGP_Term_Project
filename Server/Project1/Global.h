@@ -8,6 +8,8 @@
 #define window_size_d	780
 #define nPort 9000
 
+#define BUFSIZE 50000
+
 #include <Windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,7 +22,7 @@
 #include <queue>
 #include <chrono>
 #include <ctime>
-
+#include <mutex>
 
 // Object status
 #define Non_Obj		-1
@@ -40,6 +42,33 @@
 #define Bg_tile2	12
 #define Bg_tile3	13
 #define Bg_tile4	14
+
+static bool checkStatus(int status) {
+	switch (status)
+	{
+	case Non_Obj:
+	case Char_Idle:
+	case Char_Right:
+	case Char_Left:
+	case Char_Up:
+	case Char_Down:
+
+	case Bubble_Idle:
+	case Bubble_bomb:
+	case Non_Bubble:
+
+	case BackGround:
+	case Bg_tile1:
+	case Bg_tile2:
+	case Bg_tile3:
+	case Bg_tile4:
+		return TRUE;
+
+	default:
+		return FALSE;
+		break;
+	}
+}
 
 // Object struct
 typedef struct char_ability {
@@ -70,4 +99,11 @@ struct ClientInfo {
 	SOCKET socket;
 	DWORD clientID;
 	HANDLE clientEvent;
+};
+
+struct ServerData
+{
+	SOCKET socket;
+	Send_datatype buf;
+	int sendbytes, recvbytes;
 };

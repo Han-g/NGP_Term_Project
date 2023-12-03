@@ -29,6 +29,7 @@ typedef struct box {
 
 // 오브젝트 통제 변수
 GameSet* g_game = NULL;
+Obj_Interaction* g_Interaction = NULL;
 //EventHandle g_event = nullptr;
 
 DWORD g_Time = 0;
@@ -249,7 +250,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    static Obj_Interaction* g_Interaction = NULL;
+    //static Obj_Interaction* g_Interaction = NULL;
     //EventHandle g_handle();
     PAINTSTRUCT ps;
     HDC hdc = GetDC(hWnd);
@@ -420,9 +421,9 @@ DWORD WINAPI ClientMain(LPVOID arg)
         DWORD elapsedTime = GetTickCount() - startTime;
         int remainingTime = frameDelay - elapsedTime;
 
-        if (remainingTime > 0) {
+        /*if (remainingTime > 0) {
             Sleep(remainingTime);
-        }
+        }*/
     }
 
     closesocket(sock);
