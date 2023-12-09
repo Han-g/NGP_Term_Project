@@ -82,3 +82,10 @@ typedef struct Send_datatype {
 	int wParam;
 	int GameTime;
 } Send_datatype;
+
+struct ServerData
+{
+	SOCKET socket;
+	Send_datatype buf;
+	int sendbytes, recvbytes;
+};

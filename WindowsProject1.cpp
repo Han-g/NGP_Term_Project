@@ -1,13 +1,14 @@
-﻿#include "Common.h"
-#include "framework.h"
+﻿// WindowsProject1.cpp : 애플리케이션에 대한 진입점을 정의합니다.
+//
 
-#include "NetworkGame_Proj.h"
-#include "GameSet.h"
-#include "Obj_Interaction.h"
-#include "EventHandle.h"
+#include "framework.h"
+#include "WindowsProject1.h"
+#include "Common.h"
 #include "Global.h"
 
-//#define SERVERIP   "127.0.0.1"
+#include "Interact.h"
+
+#define MAX_LOADSTRING 100
 #define SERVERPORT 9000
 #define BUFSIZE    50000
 
@@ -18,7 +19,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름�
 HANDLE hMsgThread;                              // 통신 스레드
 DWORD dwMsgThreadID;                            // 통신 스레드 ID
 
-Send_datatype Server_bufArray[4];
+ServerData Server_bufArray[4];
 
 // 소켓 통신 스레드 함수
 DWORD WINAPI ClientMain(LPVOID arg);
@@ -28,22 +29,27 @@ typedef struct box {
 } box;
 
 // 오브젝트 통제 변수
-GameSet* g_game = NULL;
-Obj_Interaction* g_Interaction = NULL;
 //EventHandle g_event = nullptr;
 
 DWORD g_Time = 0;
 DWORD g_startTime = 0;
 DWORD g_prevTime = 0;
 
+Interact* g_Interact;
+
 bool Exitcode = false;
+int clientNum = 0;
 
 char* SERVERIP = (char*)"127.0.0.1";
 SOCKET sock; // 소켓
-Send_datatype buf; // 데이터 송수신 버퍼
+ServerData buf; // 데이터 송수신 버퍼
 HANDLE hReadEvent, hWriteEvent; // 이벤트
-HWND hSendButton; // 보내기 버튼
-HWND hEdit1, hEdit2; // 에디트 컨트롤
+
+// 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
+ATOM                MyRegisterClass(HINSTANCE hInstance);
+BOOL                InitInstance(HINSTANCE, int);
+LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
     // 데이터 크기 확인
@@ -88,7 +94,7 @@ void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
 
     // obj_info 역직렬화
     size_t objInfoSize = (bufSize - sizeof(int) - sizeof(double)) / sizeof(obj_info);
-    if (objInfoSize != 0) {
+    if (objInfoSize != 0 && data->object_info.size() != 0) {
         data->object_info.resize(objInfoSize);
         std::memcpy(data->object_info.data(), buf, objInfoSize * sizeof(obj_info));
     }
@@ -101,9 +107,71 @@ void CommuicateThread() {
     }
 }
 
+void InitObjects(int index) {
+    obj_info Player1_Index;
+    obj_info Player1_bubble[4];
+    obj_info Background[15][15];
+
+    for (int i = 0; i < 15; i++) {
+        for (int j = 0; j < 15; j++) {
+            Background[i][j] = { 
+                0, 0,
+                0, 0,
+                Non_Obj, 0, { 0, 0 } 
+            };
+        }
+    }
+
+    switch(index) {
+    case 0:
+        Player1_Index = { 
+            0, 0,
+            0, 0,
+            Char_Idle, 0, { 0, 0 } 
+        };
+        break;
+    case 1:
+        Player1_Index = { 
+            15, 0,
+            0, 0,
+            Char_Idle, 0, { 0, 0 } 
+        };
+        break;
+    case 2:
+        Player1_Index = { 
+            0, 15,
+            0, 0,
+            Char_Idle, 0, { 0, 0 } 
+        };
+        break;
+    case 3:
+        Player1_Index = { 
+            15, 15,
+            0, 0,
+            Char_Idle, 0, { 0, 0 } 
+        };
+        break;
+    default:
+        break;
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        Player1_bubble[i] = { 
+            Player1_Index.posX, Player1_Index.posY,
+            0, 0,
+            Non_Bubble, 0, { 0, 0 } 
+        };
+    }
+
+    Server_bufArray[clientNum].buf.object_info.push_back(Player1_Index);
+    Server_bufArray[clientNum].buf.object_info.push_back(*Player1_bubble);
+    Server_bufArray[clientNum].buf.object_info.push_back(**Background);
+}
+
 void RenderBackground(PAINTSTRUCT ps, HDC hdc) {
     static HBITMAP hBit;
-    hBit = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP9));
+    hBit = (HBITMAP)LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP17));
     HDC memdc = CreateCompatibleDC(hdc);
     SelectObject(memdc, hBit);
 
@@ -115,16 +183,12 @@ void RenderBackground(PAINTSTRUCT ps, HDC hdc) {
     DeleteDC(memdc);
 }
 
-void RenderScene(HDC hdc) {
-    g_game->DrawAll(hdc, hInst);
-}
-
 void RenderChar(PAINTSTRUCT ps, HDC hdc) {
     static HBITMAP hBit;
     HDC memdc = CreateCompatibleDC(hdc);
 
     for (int i = 0; i < 4; i++) {
-        for (const obj_info &info : Server_bufArray[i].object_info) {
+        for (const obj_info& info : Server_bufArray[i].buf.object_info) {
             if (checkStatus(info.type)) {
                 switch (info.type)
                 {
@@ -143,8 +207,8 @@ void RenderChar(PAINTSTRUCT ps, HDC hdc) {
                     // bubble
                 case Bubble_Idle:
                 case Bubble_bomb:
-                //case Non_Bubble:
-                    hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP6));
+                    //case Non_Bubble:
+                    hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP7));
                     SelectObject(memdc, hBit);
                     BitBlt(hdc, info.posX * 52, info.posY * 52, 56, 54, memdc, 0, 0, SRCCOPY);
                     break;
@@ -155,7 +219,7 @@ void RenderChar(PAINTSTRUCT ps, HDC hdc) {
                 case Bg_tile2:
                 case Bg_tile3:
                 case Bg_tile4:
-                    hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP9));
+                    hBit = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP16));
                     SelectObject(memdc, hBit);
                     BitBlt(hdc, info.posX * 52, info.posY * 52, 52, 52, memdc, 0, 0, SRCCOPY);
                     break;
@@ -169,18 +233,10 @@ void RenderChar(PAINTSTRUCT ps, HDC hdc) {
 }
 
 
-// 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-BOOL    CALLBACK    Dlalog_Proc(HWND, UINT, WPARAM, LPARAM);
-
-
-int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
-                        _In_opt_ HINSTANCE hPrevInstance,
-                        _In_ LPWSTR    lpCmdLine,
-                        _In_ int       nCmdShow)
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
+                     _In_opt_ HINSTANCE hPrevInstance,
+                     _In_ LPWSTR    lpCmdLine,
+                     _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
@@ -189,7 +245,7 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_NETWORKGAMEPROJ, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_WINDOWSPROJECT1, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // 애플리케이션 초기화를 수행합니다:
@@ -198,27 +254,20 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_NETWORKGAMEPROJ));
-    
-    MSG msg;
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINDOWSPROJECT1));
 
-    int FrameX = GetSystemMetrics(SM_CXFRAME), FrameY = GetSystemMetrics(SM_CYFRAME), 
-        Caption = GetSystemMetrics(SM_CYCAPTION);
+    MSG msg;
+    DWORD exitCode;
 
     // 기본 메시지 루프입니다:
-    while (!Exitcode &&GetMessage(&msg, nullptr, 0, 0))
+    while (!Exitcode && GetMessage(&msg, nullptr, 0, 0))
     {
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        //g_game->getTime(g_Time++);
-        if (Server_bufArray[0].GameTime == 0) {
-        }
-            InvalidateRect(msg.hwnd, NULL, TRUE);
 
-        DWORD exitCode;
         if (GetExitCodeThread(hMsgThread, &exitCode) && exitCode != STILL_ACTIVE)
         {
             Exitcode = true;
@@ -229,6 +278,7 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
 }
 
 
+
 //
 //  함수: MyRegisterClass()
 //
@@ -236,23 +286,23 @@ int APIENTRY wWinMain(  _In_ HINSTANCE hInstance,
 //
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
-    WNDCLASSEXW WndClass;
+    WNDCLASSEXW wcex;
 
-    WndClass.cbSize = sizeof(WNDCLASSEX);
+    wcex.cbSize = sizeof(WNDCLASSEX);
 
-    WndClass.style          = CS_HREDRAW | CS_VREDRAW;
-    WndClass.lpfnWndProc    = WndProc;
-    WndClass.cbClsExtra     = 0;
-    WndClass.cbWndExtra     = 0;
-    WndClass.hInstance      = hInstance;
-    WndClass.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_NETWORKGAMEPROJ));
-    WndClass.hCursor        = LoadCursor(NULL, IDC_ARROW);
-    WndClass.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    WndClass.lpszMenuName   = MAKEINTRESOURCEW(IDC_NETWORKGAMEPROJ);
-    WndClass.lpszClassName  = szWindowClass;
-    WndClass.hIconSm        = LoadIcon(WndClass.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.style          = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc    = WndProc;
+    wcex.cbClsExtra     = 0;
+    wcex.cbWndExtra     = 0;
+    wcex.hInstance      = hInstance;
+    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSPROJECT1));
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
+    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWSPROJECT1);
+    wcex.lpszClassName  = szWindowClass;
+    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
-    return RegisterClassExW(&WndClass);
+    return RegisterClassExW(&wcex);
 }
 
 //
@@ -269,16 +319,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
+   int FrameX = GetSystemMetrics(SM_CXSCREEN), FrameY = GetSystemMetrics(SM_CYSCREEN),
+       Caption = GetSystemMetrics(SM_CYCAPTION);
+
    HWND hWnd = CreateWindowW(
-       szWindowClass,           // 윈도우 클래스 이름
-       szTitle,                 // 윈도우 타이틀 이름
-       WS_OVERLAPPEDWINDOW,     // 윈도우 스타일
-       100, 100,                // 윈도우 생성 위치
-       window_size_w, window_size_d, 
-       nullptr,                 // 부모 윈도우 핸들 HWND
-       nullptr,                 // 메뉴 핸들 HMENU
-       hInstance,               // 응용 프로그램 인스턴스 HINSTANCE
-       nullptr                  // 생성 윈도우 정보 LPVOID
+       szWindowClass,               // 윈도우 클래스 이름
+       szTitle,                     // 윈도우 타이틀 이름
+       WS_OVERLAPPEDWINDOW,         // 윈도우 스타일
+       (FrameX - window_size_w) / 2, 
+       (FrameY - window_size_d) / 2,// 윈도우 생성 위치
+       window_size_w, window_size_d,
+       nullptr,                     // 부모 윈도우 핸들 HWND
+       nullptr,                     // 메뉴 핸들 HMENU
+       hInstance,                   // 응용 프로그램 인스턴스 HINSTANCE
+       nullptr                      // 생성 윈도우 정보 LPVOID
    );
 
    if (!hWnd)
@@ -304,34 +358,24 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    //static Obj_Interaction* g_Interaction = NULL;
-    //EventHandle g_handle();
-    PAINTSTRUCT ps;
-    HDC hdc = GetDC(hWnd);
-    
     switch (message)
     {
     case WM_CREATE:
-        hdc = BeginPaint(hWnd, &ps);
-        g_game = new GameSet(hdc);
-        g_Interaction = new Obj_Interaction;
+        g_Interact = new Interact();
+        //InitObjects(clientNum);
 
         hReadEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
         hWriteEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
         CommuicateThread();
-        //Update();
         break;
     case WM_KEYDOWN:
-        g_game->KeyInput(g_Interaction, wParam);
-        //CommuicateThread();
-        SetEvent(hWriteEvent);
+        if (g_Interact->checkKeyInput(wParam)) {
+            Server_bufArray[clientNum].buf.wParam = wParam;
+        }
         break;
     case WM_KEYUP:
-        InvalidateRect(hWnd, NULL, TRUE);
-        ResetEvent(hWriteEvent);
+        g_Interact->resetKeyInput();
         break;
-    case WM_ERASEBKGND:
-        return 1;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -351,32 +395,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_PAINT:
         {
-            hdc = BeginPaint(hWnd, &ps);
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hWnd, &ps);
+
             RenderBackground(ps, hdc);
             RenderChar(ps, hdc);
-            //RenderScene(hdc);
             EndPaint(hWnd, &ps);
-            ++g_Time; 
-
-            //WaitForSingleObject(hReadEvent, INFINITE); // 읽기 완료 대기
-            ResetEvent(hReadEvent); // 처리 후 이벤트 재설정
         }
         break;
     case WM_DESTROY:
-        //TerminateThread(hMsgThread, 0);
-        WaitForSingleObject(hMsgThread, INFINITE);
-        CloseHandle(hMsgThread);
-
-        if (g_Interaction != NULL) { 
-            delete g_Interaction; 
-        }
-        
         PostQuitMessage(0);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
-
     return 0;
 }
 
@@ -400,20 +432,19 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-// TCP 클라이언트 시작 부분
 DWORD WINAPI ClientMain(LPVOID arg)
 {
     int retval;
 
     WSADATA wsa;
-    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
         return 1;
+    }
 
-    // 소켓 생성
     sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == INVALID_SOCKET) err_quit("socket()");
+    if (sock == INVALID_SOCKET) { err_quit("socket()"); }
 
-    // connect()
+    // connect
     struct sockaddr_in serveraddr;
     memset(&serveraddr, 0, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
@@ -427,31 +458,16 @@ DWORD WINAPI ClientMain(LPVOID arg)
         return 1;
     }
 
-    // 게임 프레임
-    const int framesPerSec = 60;
-    const int frameDelay = 1000 / framesPerSec;
+    int clientIndex = 0;
+    retval = recv(sock, (char*)&clientIndex, sizeof(int), 0); // 0,1,2,3
+    InitObjects(clientIndex);
 
-    // 서버와 데이터 통신
     while (1) {
-        DWORD startTime = GetTickCount();
-        //WaitForSingleObject(hWriteEvent, INFINITE); // 쓰기 완료 대기
-
-        // 문자열 길이가 0이면 보내지 않음
-        //if (strlen(buf) == 0) {
-        //    EnableWindow(hSendButton, TRUE); // 보내기 버튼 활성화
-        //    SetEvent(hReadEvent); // 읽기 완료 알림
-        //    continue;
-        //}
-        
-        // 데이터 보내기
-        g_game->getObjINFO(&buf);
-        buf.wParam = g_game->Key_return();
         char buffer[BUFSIZE];
-        memset(buffer, NULL, sizeof(char) * BUFSIZE);
 
         // 클라이언트 정보 전달
-        if (buf.object_info.size() != 0) {
-            Serialize(&buf, buffer, BUFSIZE);
+        if (buf.buf.object_info.size() != 0) {
+            Serialize(&buf.buf, buffer, BUFSIZE);
             retval = send(sock, buffer, BUFSIZE, 0);
             if (retval == SOCKET_ERROR || retval == 0) {
                 break;
@@ -460,29 +476,7 @@ DWORD WINAPI ClientMain(LPVOID arg)
         else {
             printf("Buffer is empty!\n");
         }
-        //DisplayText("[TCP 클라이언트] %d바이트를 보냈습니다.\r\n", retval);
 
-        // 데이터 받기
-        
-        size_t receivedData = 0;
-        size_t dataSize = 0;
-
-        // 수정된 클라이언트 정보 받아오기
-        /*retval = recv(sock, buffer, BUFSIZE, MSG_WAITALL);
-        if (retval == SOCKET_ERROR || retval == 0) {
-            err_display("recv()");
-            continue;
-        }
-
-        DeSerialize(&buf, buffer, sizeof(Send_datatype));
-        if (buf.object_info.size() > 0) { 
-            if (buf.object_info[225].type == Char_Idle) {
-                std::cout << "Character Position : " << buf.object_info[225].posX << ", "
-                    << buf.object_info[225].posY << std::endl;
-            }
-            g_game->updateObjINFO(buf); 
-        }
-        */
         int nTotalSocket = 0;
         retval = recv(sock, (char*)&nTotalSocket, sizeof(int), MSG_WAITALL);
         if (retval == SOCKET_ERROR || retval == 0) {
@@ -490,7 +484,6 @@ DWORD WINAPI ClientMain(LPVOID arg)
             break;
         }
 
-        // 전체 클라이언트 정보 받아오기
         for (int i = 0; i < nTotalSocket; i++) {
             retval = recv(sock, buffer, sizeof(char) * BUFSIZE, MSG_WAITALL);
             if (retval == SOCKET_ERROR || retval == 0) {
@@ -500,27 +493,23 @@ DWORD WINAPI ClientMain(LPVOID arg)
             else {
                 for (const char& c : buffer) {
                     if (c != 0) {
-                        DeSerialize(&buf, buffer, BUFSIZE);
-                        Server_bufArray[i].object_info.clear();
-                        size_t objSize = Server_bufArray[i].object_info.capacity() * sizeof(obj_info);
-                        Server_bufArray[i].object_info.reserve(objSize);
-                        Server_bufArray[i].object_info = buf.object_info;
-
+                        DeSerialize(&buf.buf, buffer, BUFSIZE);
+                        Server_bufArray[i].buf.object_info.clear();
+                        size_t objSize = Server_bufArray[i].buf.object_info.capacity() * sizeof(obj_info);
+                        Server_bufArray[i].buf.object_info.reserve(objSize);
+                        Server_bufArray[i].buf.object_info = buf.buf.object_info;
+                        std::cout << Server_bufArray[i].buf.object_info[225].posX << ", "
+                            << Server_bufArray[i].buf.object_info[225].posY << std::endl;
                         break;
-                    }
-                }
-            }
-        }
-
-        EnableWindow(hSendButton, TRUE); // 보내기 버튼 활성화
-        SetEvent(hReadEvent); // 읽기 완료 알림
-    }
+                    } // if
+                } // for
+            } // else
+        } // for
+    } // while
 
     closesocket(sock);
     WSACleanup();
-    Exitcode = TRUE;
 
-    CloseHandle(hReadEvent);
-    CloseHandle(hWriteEvent);
+    Exitcode = TRUE;
     return 0;
 }
