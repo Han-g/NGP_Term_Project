@@ -154,6 +154,7 @@
     <ClCompile Include="ObjManager.cpp" />
     <ClCompile Include="Obj_Interaction.cpp" />
     <ClCompile Include="Render.cpp" />
+    <ClCompile Include="WindowsProject1.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NetworkGame_Proj.rc" />

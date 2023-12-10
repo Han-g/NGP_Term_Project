@@ -92,6 +92,9 @@
     <ClCompile Include="Bubble.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="WindowsProject1.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NetworkGame_Proj.rc">
