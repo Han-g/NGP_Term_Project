@@ -2,7 +2,7 @@
 //
 
 #include "framework.h"
-#include "WindowsProject1.h"
+#include "NetworkGame_Proj.h"
 #include "Common.h"
 #include "Global.h"
 
@@ -112,61 +112,62 @@ void InitObjects(int index) {
     obj_info Player1_bubble[4];
     obj_info Background[15][15];
 
-    for (int i = 0; i < 15; i++) {
-        for (int j = 0; j < 15; j++) {
-            Background[i][j] = { 
-                0, 0,
-                0, 0,
-                Non_Obj, 0, { 0, 0 } 
-            };
-        }
-    }
-
-    switch(index) {
+    switch (index) {
     case 0:
-        Player1_Index = { 
+        Player1_Index = {
             0, 0,
             0, 0,
-            Char_Idle, 0, { 0, 0 } 
+            Char_Idle, 0, { 0, 0 }
         };
         break;
     case 1:
-        Player1_Index = { 
+        Player1_Index = {
             15, 0,
             0, 0,
-            Char_Idle, 0, { 0, 0 } 
+            Char_Idle, 0, { 0, 0 }
         };
         break;
     case 2:
-        Player1_Index = { 
+        Player1_Index = {
             0, 15,
             0, 0,
-            Char_Idle, 0, { 0, 0 } 
+            Char_Idle, 0, { 0, 0 }
         };
         break;
     case 3:
-        Player1_Index = { 
+        Player1_Index = {
             15, 15,
             0, 0,
-            Char_Idle, 0, { 0, 0 } 
+            Char_Idle, 0, { 0, 0 }
         };
         break;
     default:
         break;
     }
 
+    Server_bufArray[clientNum].buf.object_info.push_back(Player1_Index);
+
     for (int i = 0; i < 4; i++)
     {
-        Player1_bubble[i] = { 
+        Player1_bubble[i] = {
             Player1_Index.posX, Player1_Index.posY,
             0, 0,
-            Non_Bubble, 0, { 0, 0 } 
+            Non_Bubble, 0, { 0, 0 }
         };
+        Server_bufArray[clientNum].buf.object_info.push_back(Player1_bubble[i]);
     }
 
-    Server_bufArray[clientNum].buf.object_info.push_back(Player1_Index);
-    Server_bufArray[clientNum].buf.object_info.push_back(*Player1_bubble);
-    Server_bufArray[clientNum].buf.object_info.push_back(**Background);
+
+    for (int i = 0; i < 15; i++) {
+        for (int j = 0; j < 15; j++) {
+            Background[i][j] = {
+                0, 0,
+                0, 0,
+                Non_Obj, 0, { 0, 0 }
+            };
+            Server_bufArray[clientNum].buf.object_info.push_back(Background[i][j]);
+        }
+    }
 }
 
 void RenderBackground(PAINTSTRUCT ps, HDC hdc) {
@@ -234,9 +235,9 @@ void RenderChar(PAINTSTRUCT ps, HDC hdc) {
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPrevInstance,
-                     _In_ LPWSTR    lpCmdLine,
-                     _In_ int       nCmdShow)
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR    lpCmdLine,
+    _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
@@ -249,7 +250,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MyRegisterClass(hInstance);
 
     // 애플리케이션 초기화를 수행합니다:
-    if (!InitInstance (hInstance, nCmdShow))
+    if (!InitInstance(hInstance, nCmdShow))
     {
         return FALSE;
     }
@@ -274,7 +275,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
 
-    return (int) msg.wParam;
+    return (int)msg.wParam;
 }
 
 
@@ -290,17 +291,17 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
     wcex.cbSize = sizeof(WNDCLASSEX);
 
-    wcex.style          = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc    = WndProc;
-    wcex.cbClsExtra     = 0;
-    wcex.cbWndExtra     = 0;
-    wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSPROJECT1));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWSPROJECT1);
-    wcex.lpszClassName  = szWindowClass;
-    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = WndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = 0;
+    wcex.hInstance = hInstance;
+    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSPROJECT1));
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_WINDOWSPROJECT1);
+    wcex.lpszClassName = szWindowClass;
+    wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     return RegisterClassExW(&wcex);
 }
@@ -317,33 +318,33 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
+    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-   int FrameX = GetSystemMetrics(SM_CXSCREEN), FrameY = GetSystemMetrics(SM_CYSCREEN),
-       Caption = GetSystemMetrics(SM_CYCAPTION);
+    int FrameX = GetSystemMetrics(SM_CXSCREEN), FrameY = GetSystemMetrics(SM_CYSCREEN),
+        Caption = GetSystemMetrics(SM_CYCAPTION);
 
-   HWND hWnd = CreateWindowW(
-       szWindowClass,               // 윈도우 클래스 이름
-       szTitle,                     // 윈도우 타이틀 이름
-       WS_OVERLAPPEDWINDOW,         // 윈도우 스타일
-       (FrameX - window_size_w) / 2, 
-       (FrameY - window_size_d) / 2,// 윈도우 생성 위치
-       window_size_w, window_size_d,
-       nullptr,                     // 부모 윈도우 핸들 HWND
-       nullptr,                     // 메뉴 핸들 HMENU
-       hInstance,                   // 응용 프로그램 인스턴스 HINSTANCE
-       nullptr                      // 생성 윈도우 정보 LPVOID
-   );
+    HWND hWnd = CreateWindowW(
+        szWindowClass,               // 윈도우 클래스 이름
+        szTitle,                     // 윈도우 타이틀 이름
+        WS_OVERLAPPEDWINDOW,         // 윈도우 스타일
+        (FrameX - window_size_w) / 2,
+        (FrameY - window_size_d) / 2,// 윈도우 생성 위치
+        window_size_w, window_size_d,
+        nullptr,                     // 부모 윈도우 핸들 HWND
+        nullptr,                     // 메뉴 핸들 HMENU
+        hInstance,                   // 응용 프로그램 인스턴스 HINSTANCE
+        nullptr                      // 생성 윈도우 정보 LPVOID
+    );
 
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+    if (!hWnd)
+    {
+        return FALSE;
+    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+    ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);
 
-   return TRUE;
+    return TRUE;
 }
 
 //
@@ -362,7 +363,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
         g_Interact = new Interact();
-        //InitObjects(clientNum);
+        InitObjects(clientNum);
 
         hReadEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
         hWriteEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -377,32 +378,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         g_Interact->resetKeyInput();
         break;
     case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        // 메뉴 선택을 구문 분석합니다:
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            // 메뉴 선택을 구문 분석합니다:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
+        case IDM_ABOUT:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            break;
+        case IDM_EXIT:
+            DestroyWindow(hWnd);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
         }
-        break;
+    }
+    break;
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
 
-            RenderBackground(ps, hdc);
-            RenderChar(ps, hdc);
-            EndPaint(hWnd, &ps);
-        }
-        break;
+        RenderBackground(ps, hdc);
+        RenderChar(ps, hdc);
+        EndPaint(hWnd, &ps);
+    }
+    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -459,52 +460,81 @@ DWORD WINAPI ClientMain(LPVOID arg)
     }
 
     int clientIndex = 0;
+    bool recvCheck = FALSE;
     retval = recv(sock, (char*)&clientIndex, sizeof(int), 0); // 0,1,2,3
     InitObjects(clientIndex);
 
     while (1) {
-        char buffer[BUFSIZE];
-
-        // 클라이언트 정보 전달
-        if (buf.buf.object_info.size() != 0) {
-            Serialize(&buf.buf, buffer, BUFSIZE);
-            retval = send(sock, buffer, BUFSIZE, 0);
-            if (retval == SOCKET_ERROR || retval == 0) {
-                break;
-            }
+        fd_set rset, wset;
+        FD_ZERO(&rset);
+        FD_ZERO(&wset);
+        if (!recvCheck) {
+            FD_SET(sock, &wset);
         }
         else {
-            printf("Buffer is empty!\n");
+            FD_SET(sock, &rset);
         }
 
-        int nTotalSocket = 0;
-        retval = recv(sock, (char*)&nTotalSocket, sizeof(int), MSG_WAITALL);
-        if (retval == SOCKET_ERROR || retval == 0) {
-            err_display("recv()");
+        struct timeval timeout;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 16; // 1ms
+
+        int nready = select(0, &rset, &wset, NULL, &timeout);
+        if (nready == SOCKET_ERROR) {
+            err_display("select()");
             break;
         }
 
-        for (int i = 0; i < nTotalSocket; i++) {
-            retval = recv(sock, buffer, sizeof(char) * BUFSIZE, MSG_WAITALL);
-            if (retval == SOCKET_ERROR || retval == 0) {
-                err_display("recv()");
-                break;
-            }
-            else {
-                for (const char& c : buffer) {
-                    if (c != 0) {
-                        DeSerialize(&buf.buf, buffer, BUFSIZE);
-                        Server_bufArray[i].buf.object_info.clear();
-                        size_t objSize = Server_bufArray[i].buf.object_info.capacity() * sizeof(obj_info);
-                        Server_bufArray[i].buf.object_info.reserve(objSize);
-                        Server_bufArray[i].buf.object_info = buf.buf.object_info;
-                        std::cout << Server_bufArray[i].buf.object_info[225].posX << ", "
-                            << Server_bufArray[i].buf.object_info[225].posY << std::endl;
+        else {
+            char buffer[BUFSIZE];
+
+            if (FD_ISSET(sock, &wset)) {
+                if (Server_bufArray[clientIndex].buf.object_info.size() != 0) {
+                    Serialize(&buf.buf, buffer, BUFSIZE);
+                    retval = send(sock, buffer, BUFSIZE, 0);
+                    if (retval == SOCKET_ERROR || retval == 0) {
                         break;
-                    } // if
-                } // for
-            } // else
-        } // for
+                    }
+                }
+                else {
+                    printf("Buffer is empty!\n");
+                }
+                recvCheck = FALSE;
+            }
+
+            else if (FD_ISSET(sock, &rset)) {
+                int nTotalSocket = 0;
+                retval = recv(sock, (char*)&nTotalSocket, sizeof(int), MSG_WAITALL);
+                if (retval == SOCKET_ERROR || retval == 0) {
+                    err_display("recv()");
+                    break;
+                }
+
+                retval = recv(sock, buffer, sizeof(char) * BUFSIZE, 0);
+                if (retval == SOCKET_ERROR || retval == 0) {
+                    err_display("recv()");
+                    break;
+                }
+                else {
+                    // 받은 데이터 처리
+                    for (const char& c : buffer) {
+                        if (c != 0) {
+                            DeSerialize(&buf.buf, buffer, BUFSIZE);
+                            if (Server_bufArray[clientIndex].buf.object_info.size() != 0
+                                && Server_bufArray[clientIndex].buf.object_info.capacity() != 0) {
+                                Server_bufArray[clientIndex].buf.object_info.clear();
+                                size_t objSize = Server_bufArray[clientIndex].buf.object_info.capacity() * sizeof(obj_info);
+                                Server_bufArray[clientIndex].buf.object_info.reserve(objSize);
+                                Server_bufArray[clientIndex].buf.object_info = buf.buf.object_info;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                recvCheck = TRUE;
+            }
+        }
     } // while
 
     closesocket(sock);
@@ -513,3 +543,48 @@ DWORD WINAPI ClientMain(LPVOID arg)
     Exitcode = TRUE;
     return 0;
 }
+
+
+
+
+
+// 클라이언트 정보 전달
+//if (buf.buf.object_info.size() != 0) {
+//    Serialize(&buf.buf, buffer, BUFSIZE);
+//    retval = send(sock, buffer, BUFSIZE, 0);
+//    if (retval == SOCKET_ERROR || retval == 0) {
+//        break;
+//    }
+//}
+//else {
+//    printf("Buffer is empty!\n");
+//}
+
+//int nTotalSocket = 0;
+//retval = recv(sock, (char*)&nTotalSocket, sizeof(int), MSG_WAITALL);
+//if (retval == SOCKET_ERROR || retval == 0) {
+//    err_display("recv()");
+//    break;
+//}
+
+//for (int i = 0; i < nTotalSocket; i++) {
+//    retval = recv(sock, buffer, sizeof(char) * BUFSIZE, MSG_WAITALL);
+//    if (retval == SOCKET_ERROR || retval == 0) {
+//        err_display("recv()");
+//        break;
+//    }
+//    else {
+//        for (const char& c : buffer) {
+//            if (c != 0) {
+//                DeSerialize(&buf.buf, buffer, BUFSIZE);
+//                Server_bufArray[i].buf.object_info.clear();
+//                size_t objSize = Server_bufArray[i].buf.object_info.capacity() * sizeof(obj_info);
+//                Server_bufArray[i].buf.object_info.reserve(objSize);
+//                Server_bufArray[i].buf.object_info = buf.buf.object_info;
+//                std::cout << Server_bufArray[i].buf.object_info[225].posX << ", "
+//                    << Server_bufArray[i].buf.object_info[225].posY << std::endl;
+//                break;
+//            } // if
+//        } // for
+//    } // else
+//} // for

@@ -12,7 +12,16 @@ std::atomic<int> frame(0);
 
 //NetworkThread* networkThread;
 std::mutex BufferMutex;
+std::condition_variable ObjectThreadCV;
+bool ObjectThreadReady[4] = { false, };
 HANDLE ObjConnet[4];
+
+struct ClientID {
+	SOCKET socket;
+	int clientID;
+};
+ClientID ID[4] = { NULL };
+
 Send_datatype InputBuf, OutputBuf;
 ServerData* serverData[4];
 int nTotalSockets = 0;
@@ -29,7 +38,6 @@ Send_datatype ObjectGetter(DWORD clientID);
 
 void ObjectThread(int arg)
 {
-	//ClientInfo* clientInfo = static_cast<ClientInfo*>(arg);
 	int clientID = (int)(arg);
 	ObjectManager* object = new ObjectManager();
 	ObjConnet[clientID] = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -37,34 +45,43 @@ void ObjectThread(int arg)
 	while (1)
 	{
 		DWORD ret = WaitForSingleObject(ObjConnet[clientID], INFINITE);
+
+		if (!ObjectThreadReady[clientID]) {
+			ObjectThreadReady[clientID] = FALSE;
+			break;
+		}
 		//std::cout << "Object Thread Section" << std::endl;
 
+		Send_datatype buf = ObjectGetter(clientID);
 		std::unique_lock<std::mutex> lock(BufferMutex);
+
 		switch (ret)
 		{
 		case WAIT_TIMEOUT:
 		case WAIT_FAILED:
 			GetLastError();
+			//lock.unlock();
 			delete object;
 			break;
 		case WAIT_OBJECT_0:
 			// bufferAccess 이벤트 설정 시 수행	
-			object->GameSet(ObjectGetter(clientID));
+			object->getClientID(clientID);
+			object->GameSet(buf);
+			if (buf.object_info.capacity() != 0) {
+				std::cout << "CharPosition" << /*buf.object_info[225].posX << ", "
+					<< buf.object_info[225].posY <<*/ "\r";
+			}
 			object->Key_Check();
-			ObjectSaver(clientID, object->Update());
+			buf = object->Update();
+			lock.unlock();
+			ObjectSaver(clientID, buf);
 			break;
 		default:
+			//lock.unlock();
 			break;
 		}
 
-		lock.unlock();
 		ResetEvent(ObjConnet[clientID]);
-
-		// send 수행 이벤트
-		if (serverData[clientID]->socket == 0) {
-			break;
-		}
-
 	}
 
 	delete object;
@@ -79,6 +96,8 @@ void ServerThread()
 
 	while (1)
 	{
+		std::unique_lock<std::mutex> lock(BufferMutex);
+
 		ULONGLONG gameTime = GetTickCount64();
 		if (gameTime - StartTime >= Frame) {
 			fTime = GetTickCount64() - StartTime;	// 현시간과 이전 프레임 시간 차로 시간계산
@@ -97,6 +116,7 @@ void ServerThread()
 			frame = 0;
 		}
 
+		lock.unlock();
 		// 스레드를 일정 시간동안 대기시킴 (예: 16ms 대기 = 60 FPS)
 		//std::this_thread::sleep_for(std::chrono::milliseconds(16));
 	}
@@ -107,6 +127,9 @@ void ServerThread()
 int main()
 {
 	int retval;
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 16;
 
 	// 윈속 초기화
 	WSADATA wsa;
@@ -139,8 +162,9 @@ int main()
 
 	SOCKET client_sock;
 	int nready, addrlen;
-	fd_set rset, wset;
 	struct sockaddr_in clientaddr;
+	bool recvCheck[4] = { FALSE, };
+	fd_set rset, wset;
 
 	while (1) {
 		//std::cout << "Main Thread Section" << std::endl;
@@ -149,7 +173,7 @@ int main()
 		FD_ZERO(&wset);
 		FD_SET(listen_sock, &rset);
 		for (int i = 0; i < nTotalSockets; i++) {
-			if (serverData[i]->recvbytes > serverData[i]->sendbytes) {
+			if (!recvCheck[i]) {
 				FD_SET(serverData[i]->socket, &wset);
 			}
 			else {
@@ -158,8 +182,9 @@ int main()
 		}
 
 		// select()
-		nready = select(0, &rset, &wset, NULL, NULL);
-		if (nready == SOCKET_ERROR) err_quit("select()");
+		nready = select(nTotalSockets + 1, &rset, &wset, NULL, &timeout);
+		if (nready == SOCKET_ERROR) { err_quit("select()"); }
+		//std::cout << "select result: " << nready << std::endl;
 
 		// 소켓 셋 검사(1): 클라이언트 접속 수용
 		if (FD_ISSET(listen_sock, &rset)) {
@@ -177,10 +202,16 @@ int main()
 				printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",
 					addr, ntohs(clientaddr.sin_port));
 				// 소켓 정보 추가: 실패 시 소켓 닫음
-				if (!AddSocketInfo(client_sock)) { closesocket(client_sock); }
+				if (!AddSocketInfo(client_sock)) {
+					closesocket(client_sock);
+				}
 
 				if (nTotalSockets > 0) {
 					objectThread[nTotalSockets - 1] = std::thread(ObjectThread, nTotalSockets - 1);
+					retval = send(client_sock, (char*)&ID[nTotalSockets - 1].clientID, sizeof(int), 0);
+					serverData[nTotalSockets - 1]->recvbytes = retval;
+					//FD_SET(client_sock, &rset);
+					recvCheck[nTotalSockets - 1] = FALSE;
 				}
 			}
 			if (--nready <= 0) { continue; }
@@ -194,23 +225,31 @@ int main()
 
 			if (FD_ISSET(ptr->socket, &rset)) {
 				// 데이터 받기
+				std::cout << "recive datas" << std::endl;
 				retval = recv(ptr->socket, buffer, BUFSIZE, 0);
 
 				if (retval == SOCKET_ERROR) {
 					err_display("recv()");
 					RemoveSocketInfo(i);
+					SetEvent(ObjConnet[i]);
+					objectThread[i].join();
+					ResetEvent(ObjConnet[nTotalSockets - 1]);
+					ObjConnet[nTotalSockets - 1] = nullptr;
 				}
 				else if (retval == 0) {
 					RemoveSocketInfo(i);
+					SetEvent(ObjConnet[i]);
+					objectThread[i].join();
+					ResetEvent(ObjConnet[nTotalSockets - 1]);
+					ObjConnet[nTotalSockets - 1] = nullptr;
 				}
 				else {
-					SetEvent(ObjConnet[i]);
 					// 클라이언트 정보 얻기
 					DeSerialize(&ptr->buf, buffer, BUFSIZE);
-					/*if (ptr->buf.wParam != 0) {
-						std::cout << "Key Input" << std::endl;
+
+					/*if (ptr->buf.object_info.capacity() >= 225) {
+						std::cout << "recv Client : " << ptr->buf.wParam << std::endl;
 					}*/
-					std::cout << ptr->buf.wParam << std::endl;
 
 					ptr->recvbytes = retval;
 					ptr->sendbytes = 0;
@@ -223,58 +262,45 @@ int main()
 					char addr[INET_ADDRSTRLEN];
 					inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 
+					recvCheck[i] = FALSE;
 				}
 			}
 			else if (FD_ISSET(ptr->socket, &wset)) {
-				//objectThread[i].join();
-				// 데이터 보내기
-				ptr->buf.GameTime = frame.load();
-				Serialize(&ptr->buf, buffer, BUFSIZE);
-				retval = send(ptr->socket, buffer + ptr->sendbytes,
-					ptr->recvbytes - ptr->sendbytes, 0);
+				SetEvent(ObjConnet[i]);
+				std::cout << "send datas" << std::endl;
 
-				std::cout << "send Server : " << serverData[i]->buf.wParam << std::endl;
-
+				retval = send(ptr->socket, (char*)&nTotalSockets, sizeof(int), 0);
 				if (retval == SOCKET_ERROR) {
 					err_display("send()");
-					RemoveSocketInfo(i);
-				}
-				else {
-					ptr->sendbytes += retval;
-					if (ptr->recvbytes == ptr->sendbytes) {
-						ptr->sendbytes = 0;
-					}
 				}
 
-				for (int i = 0; i < 4; ++i) {
-					if (i < nTotalSockets) {
-						Serialize(&serverData[i]->buf, buffer, BUFSIZE);
-						retval = send(ptr->socket, buffer + serverData[i]->sendbytes,
-							serverData[i]->recvbytes - serverData[i]->sendbytes, 0);
+				for (int j = 0; j < 4; ++j) {
+					if (j < nTotalSockets) {
+						Serialize(&serverData[j]->buf, buffer, BUFSIZE);
+						retval = send(ptr->socket, buffer + serverData[j]->sendbytes,
+							serverData[j]->recvbytes - serverData[j]->sendbytes, 0);
 
-						std::cout << i + 1 << " Client send : " << serverData[i]->buf.wParam << std::endl;
+						//std::cout << i+1 << " Client send : " << serverData[i]->buf.wParam << std::endl;
 
 						if (retval == SOCKET_ERROR) {
 							err_display("send()");
-							RemoveSocketInfo(i);
 						}
 						else {
 							std::unique_lock<std::mutex> lock(BufferMutex);
-							serverData[i]->sendbytes += retval;
-							if (serverData[i]->recvbytes == serverData[i]->sendbytes) {
-								serverData[i]->recvbytes = serverData[i]->sendbytes = 0;
+							serverData[j]->sendbytes += retval;
+							if (serverData[j]->recvbytes == serverData[j]->sendbytes) {
+								serverData[j]->recvbytes = serverData[j]->sendbytes = 0;
 							}
 							lock.unlock();
 						}
 					}
-					else {
-						char* tem = new char[BUFSIZE];
-						memset(tem, 0, BUFSIZE);
-						retval = send(ptr->socket, tem, BUFSIZE, 0);
-					}
 				}
-
-				ptr->recvbytes = 0;
+				//ptr->recvbytes = 0;
+				recvCheck[i] = TRUE;
+			}
+			else {
+				recvCheck[i] = FALSE;
+				std::cout << "select set check" << std::endl;
 			}
 		}
 	}
@@ -296,14 +322,19 @@ bool AddSocketInfo(SOCKET sock)
 		delete ptr;
 		return false;
 	}
+
 	ptr->socket = sock;
 	ptr->recvbytes = 0;
 	ptr->sendbytes = 0;
+
 	for (int i = 0; i < 4; ++i) {
 		if (serverData[i] == NULL) {
 			std::unique_lock<std::mutex> lock(BufferMutex);
 			serverData[i] = ptr;
 			lock.unlock();
+			ObjectThreadReady[i] = true;
+			ID[i].socket = sock;
+			ID[i].clientID = i;
 			break;
 		}
 		if (i == 3) {
@@ -312,6 +343,7 @@ bool AddSocketInfo(SOCKET sock)
 		}
 	}
 	nTotalSockets++;
+
 	return true;
 }
 
@@ -345,13 +377,19 @@ void RemoveSocketInfo(int nIndex)
 		serverData[nTotalSockets - 1] = NULL;
 		lock.unlock();
 	}
-	ResetEvent(ObjConnet[nTotalSockets - 1]);
+	else {
+		std::unique_lock<std::mutex> lock(BufferMutex);
+		serverData[nTotalSockets - 1] = NULL;
+		lock.unlock();
+	}
+	ObjectThreadReady[nTotalSockets - 1] = false;
+
 	--nTotalSockets;
 }
 
 static void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 	// 데이터 크기 확인
-	size_t dataSize = sizeof(int) + sizeof(double) + data->object_info.size() * sizeof(obj_info);
+	size_t dataSize = sizeof(int) + sizeof(double) + data->object_info.capacity() * sizeof(obj_info);
 
 	// 버퍼 크기 확인
 	if (bufSize < dataSize) {
@@ -369,7 +407,7 @@ static void Serialize(Send_datatype* data, char* buf, size_t bufSize) {
 	std::memcpy(buf, &data->GameTime, sizeof(double));
 	buf += sizeof(double);
 
-	std::memcpy(buf, data->object_info.data(), data->object_info.size() * sizeof(obj_info));
+	std::memcpy(buf, data->object_info.data(), data->object_info.capacity() * sizeof(obj_info));
 }
 
 static void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
@@ -398,25 +436,37 @@ static void DeSerialize(Send_datatype* data, char* buf, size_t bufSize) {
 
 void ObjectSaver(DWORD clientID, const Send_datatype& data)
 {
-	//std::unique_lock<std::mutex> lock(BufferMutex);
+	std::unique_lock<std::mutex> lock(BufferMutex);
 	if (data.object_info.capacity() != 0) {
 		serverData[(int)clientID]->buf.GameTime = data.GameTime;
 		serverData[(int)clientID]->buf.wParam = data.wParam;
-		if (serverData[(int)clientID]->buf.object_info.empty()) {
-			serverData[(int)clientID]->buf.object_info = data.object_info;
+		try
+		{
+			if (serverData[(int)clientID]->buf.object_info.empty()) {
+				serverData[(int)clientID]->buf.object_info = data.object_info;
+			}
+			else {
+				serverData[(int)clientID]->buf.object_info.clear();
+				serverData[(int)clientID]->buf.object_info = data.object_info;
+			}
 		}
-		else {
-			serverData[(int)clientID]->buf.object_info.clear();
-			serverData[(int)clientID]->buf.object_info = data.object_info;
+		catch (const std::out_of_range& e)
+		{
+			std::cerr << "Out of range exception: " << e.what() << std::endl;
 		}
 	}
-	//lock.unlock();
+	lock.unlock();
 }
 Send_datatype ObjectGetter(DWORD clientID)
 {
 	Send_datatype copy;
-	//std::unique_lock<std::mutex> lock(BufferMutex);
-	copy = serverData[(int)clientID]->buf;
-	//lock.unlock();
+	std::unique_lock<std::mutex> lock(BufferMutex);
+	try {
+		copy = serverData[(int)clientID]->buf;
+	}
+	catch (const std::out_of_range& e) {
+		std::cerr << "Out of range exception: " << e.what() << std::endl;
+	}
+	lock.unlock();
 	return copy;
 }

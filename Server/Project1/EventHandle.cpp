@@ -12,7 +12,7 @@ bool operator!=(const obj_info& lhs, const obj_info& rhs) {
 
 EventHandle::EventHandle()
 {
-	char_info = tem;
+	char_info = &tem;
 	wParam = 0;
 
 	m_Key_UP = FALSE;
@@ -25,15 +25,15 @@ EventHandle::EventHandle()
 
 EventHandle::~EventHandle()
 {
-
+	//delete char_info;
 }
 
 void EventHandle::check_obj(Send_datatype data)
 {
 	buf = data;
-	for (const obj_info& i : data.object_info) {
+	for (const obj_info i : data.object_info) {
 		if (i.type == Char_Idle) {
-			char_info = i;
+			*char_info = i;
 			break;
 		}
 	}
@@ -42,7 +42,7 @@ void EventHandle::check_obj(Send_datatype data)
 
 void EventHandle::check_key()
 {
-	if (char_info != tem)
+	if (char_info != nullptr)
 	{
 		if (wParam != 0) {
 			switch (wParam)
@@ -74,25 +74,32 @@ void EventHandle::check_key()
 	}
 }
 
-obj_info EventHandle::update_char(int x, int y)
+Send_datatype EventHandle::update_char(int x, int y)
 {
 	if (m_Key_UP || m_Key_DOWN || m_Key_LEFT || m_Key_RIGHT) {
 		move_char(x, y);
 	}
 	if (m_Key_BUBBLE) {
-		set_bubble(char_info.posX, char_info.posY);
+		set_bubble(char_info->posX, char_info->posY);
 	}
-	return char_info;
+	return buf;
 }
 
 inline void EventHandle::move_char(int x, int y)
 {
-	if (char_info.posX + x >= 0 && char_info.posX + x < 15) {
-		char_info.posX += x;
+	if (char_info->posX + x >= 0 && char_info->posX + x < 15) {
+		char_info->posX += x;
 	}
 
-	if (char_info.posY + y >= 0 && char_info.posY + y < 15) {
-		char_info.posY += y;
+	if (char_info->posY + y >= 0 && char_info->posY + y < 15) {
+		char_info->posY += y;
+	}
+
+	for (int i = 0; i < buf.object_info.size(); ++i) {
+		if (buf.object_info[i].type == Char_Idle) {
+			buf.object_info[i] = *char_info;
+			break;
+		}
 	}
 }
 
@@ -106,10 +113,10 @@ inline void EventHandle::set_bubble(int char_x, int char_y)
 		}
 	}
 
-	if (char_info.ablility.bubble_num < MAX_BUBBLE_NUM) {
-		char_info.ablility.bubble_num += 1;
-		bubble.posX = char_info.posX;
-		bubble.posY = char_info.posY;
+	if (char_info->ablility.bubble_num < MAX_BUBBLE_NUM) {
+		char_info->ablility.bubble_num += 1;
+		bubble.posX = char_info->posX;
+		bubble.posY = char_info->posY;
 		bubble.type = Bubble_bomb;
 	}
 }

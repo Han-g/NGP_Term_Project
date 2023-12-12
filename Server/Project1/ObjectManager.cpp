@@ -4,6 +4,7 @@ ObjectManager::ObjectManager()
 {
 	Time = 0.0;
 	wParam = 0;
+	clientID = 0;
 
 	object_vector.clear();
 	buffer.object_info.clear();
@@ -30,23 +31,25 @@ void ObjectManager::GameSet(Send_datatype data)
 
 Send_datatype ObjectManager::Update()
 {
-	return Send_datatype();
+	buffer.wParam = 0;
+	return buffer;
 }
 
 void ObjectManager::Key_Check()
 {
 	eventhandle->check_key();
+	//std::cout << buffer.wParam << std::endl;
 	if (eventhandle->return_key_UP()) {
-		eventhandle->move_char(0, -1);
+		buffer = eventhandle->update_char(0, -1);
 	}
 	if (eventhandle->return_key_DOWN()) {
-		eventhandle->move_char(0, 1);
+		buffer = eventhandle->update_char(0, 1);
 	}
 	if (eventhandle->return_key_LEFT()) {
-		eventhandle->move_char(-1, 0);
+		buffer = eventhandle->update_char(-1, 0);
 	}
 	if (eventhandle->return_key_RIGHT()) {
-		eventhandle->move_char(1, 0);
+		buffer = eventhandle->update_char(1, 0);
 	}
 	if (eventhandle->return_key_BUBBLE()) {
 
@@ -61,7 +64,8 @@ void ObjectManager::Object_collision()
 
 }
 
-int ObjectManager::getClientID()
+void ObjectManager::getClientID(int id)
 {
-	return 0;
+	clientID = id;
+	return;
 }

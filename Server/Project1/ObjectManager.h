@@ -14,7 +14,7 @@ public:
 	void Key_Check();
 	void Object_collision();
 
-	int getClientID();
+	void getClientID(int id);
 
 private:
 	obj_info temp = { 0,0,0,0,0,0,{0,0} };
@@ -22,6 +22,6 @@ private:
 	Send_datatype buffer;
 	std::vector<obj_info> object_vector;
 	double Time;
-	int wParam;
+	int wParam, clientID;
 };
 

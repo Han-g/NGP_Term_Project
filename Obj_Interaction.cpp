@@ -44,7 +44,7 @@ bool Obj_Interaction::KeyDown(WPARAM wParam)
 		m_Key_BUBBLE = true;
 		return true;
 		break;
-	case 17: // item	 (ctrl)
+	case 17: // item	 (ctrl)S
 		m_Key_ITEM = true;
 		return true;
 		break;
