@@ -63,70 +63,72 @@ bool ObjectManager::Object_collision(Send_datatype& other)
 {
 	WORD Coll = 5;
 
-	int otherBackX = other.object_info[0].posX - Obj_SizeX / 2;
-	int otherBackY = other.object_info[0].posY - Obj_SizeY / 2;
-	int otherForX = other.object_info[0].posX + Obj_SizeX / 2;
-	int otherForY = other.object_info[0].posY + Obj_SizeY / 2;
+	if (other.object_info.capacity() > 0) {
+		int otherBackX = other.object_info[0].posX - Obj_SizeX / 2;
+		int otherBackY = other.object_info[0].posY - Obj_SizeY / 2;
+		int otherForX = other.object_info[0].posX + Obj_SizeX / 2;
+		int otherForY = other.object_info[0].posY + Obj_SizeY / 2;
 
-	int MyBackX = GetPosition().posX - Obj_SizeX / 2;
-	int MyBackY = GetPosition().posY - Obj_SizeY / 2;
-	int MyForX = GetPosition().posX + Obj_SizeX / 2;
-	int MYForY = GetPosition().posY + Obj_SizeY / 2;
+		int MyBackX = GetPosition().posX - Obj_SizeX / 2;
+		int MyBackY = GetPosition().posY - Obj_SizeY / 2;
+		int MyForX = GetPosition().posX + Obj_SizeX / 2;
+		int MYForY = GetPosition().posY + Obj_SizeY / 2;
 
-	int disX = GetPosition().posX - other.object_info[0].posX;
-	int disY = GetPosition().posY - other.object_info[0].posY;
+		int disX = GetPosition().posX - other.object_info[0].posX;
+		int disY = GetPosition().posY - other.object_info[0].posY;
 
-	if (MyBackX > otherForX) return false;
-	if (MyBackY > otherForY) return false;
-	if (MyForX < otherBackX) return false;
-	if (MYForY < otherBackY) return false;
+		if (MyBackX > otherForX) return false;
+		if (MyBackY > otherForY) return false;
+		if (MyForX < otherBackX) return false;
+		if (MYForY < otherBackY) return false;
 
-	if (disX * disX <= disY * disY)
-	{
-		if (disY < 0)
+		if (disX * disX <= disY * disY)
 		{
-			Coll |= CollUp;
+			if (disY < 0)
+			{
+				Coll |= CollUp;
+			}
+			else
+			{
+				Coll |= CollDown;
+			}
 		}
-		else
+		else if (disX * disX <= disY * disY)
 		{
-			Coll |= CollDown;
-		}
-	}
-	else if (disX * disX <= disY * disY)
-	{
-		if (disX < 0)
-		{
-			Coll |= CollRight;
-		}
-		else
-		{
-			Coll |= CollLeft;
-		}
-	}
-
-	if (ReturnObjType() == Char_Idle && other.object_info[0].type == Bg_tile1 || ReturnObjType() == Char_Idle && other.object_info[0].type == Bg_tile2
-		|| ReturnObjType() == Char_Idle && other.object_info[0].type == Bg_tile3)
-	{
-		if (Coll == CollLeft)
-		{
-			buffer.object_info[0].posX = other.object_info[0].posX + Obj_SizeX / 2;
-		}
-		else if (Coll == CollRight)
-		{
-			buffer.object_info[0].posX = other.object_info[0].posX - Obj_SizeX / 2;
+			if (disX < 0)
+			{
+				Coll |= CollRight;
+			}
+			else
+			{
+				Coll |= CollLeft;
+			}
 		}
 
-		else if (Coll == CollUp)
+		if (ReturnObjType() == Char_Idle && other.object_info[0].type == Bg_tile1 || ReturnObjType() == Char_Idle && other.object_info[0].type == Bg_tile2
+			|| ReturnObjType() == Char_Idle && other.object_info[0].type == Bg_tile3)
 		{
-			buffer.object_info[0].posY = other.object_info[0].posY + Obj_SizeY / 2;
-		}
-		else if (Coll == CollDown)
-		{
-			buffer.object_info[0].posY = other.object_info[0].posY - Obj_SizeY / 2;
-		}
-		else
-		{
-			Coll |= 5;
+			if (Coll == CollLeft)
+			{
+				buffer.object_info[0].posX = other.object_info[0].posX + Obj_SizeX / 2;
+			}
+			else if (Coll == CollRight)
+			{
+				buffer.object_info[0].posX = other.object_info[0].posX - Obj_SizeX / 2;
+			}
+
+			else if (Coll == CollUp)
+			{
+				buffer.object_info[0].posY = other.object_info[0].posY + Obj_SizeY / 2;
+			}
+			else if (Coll == CollDown)
+			{
+				buffer.object_info[0].posY = other.object_info[0].posY - Obj_SizeY / 2;
+			}
+			else
+			{
+				Coll |= 5;
+			}
 		}
 	}
 }

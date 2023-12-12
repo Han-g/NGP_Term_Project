@@ -73,29 +73,31 @@ void ObjectThread(int arg)
 					<< buf.object_info[225].posY << "\r";*/
 			}
 			object->Key_Check();
-			buf = object->Update();
 
-			for (int i = 0; i < 4; i++)
+			for (int i = 0; i < nTotalSockets; i++)
 			{
-				CollStatus = object->Object_collision(serverData[i]->buf);
-				if (CollStatus == false)
-				{
-					if (buf.object_info[0].type == Char_Idle && serverData[i]->buf.object_info[0].type == Bubble_bomb)// 물풍선 충돌처리
+				if (buf.object_info.capacity() > 0) {
+					CollStatus = object->Object_collision(serverData[i]->buf);
+					if (CollStatus == false)
 					{
-						buf.object_info[0].type = Non_Obj;//플레이어 상태 변화
+						if (buf.object_info[0].type == Char_Idle && serverData[i]->buf.object_info[0].type == Bubble_bomb)// 물풍선 충돌처리
+						{
+							buf.object_info[0].type = Non_Obj;//플레이어 상태 변화
 
-						CollStatus = true;
+							CollStatus = true;
+						}
+						else
+						{
+							CollStatus = true;
+						}
 					}
 					else
 					{
-						CollStatus = true;
 					}
-				}
-				else
-				{
 				}
 			} // 오브젝트 
 
+			buf = object->Update();
 			lock.unlock();
 			ObjectSaver(clientID, buf);
 			break;
