@@ -38,6 +38,7 @@ Send_datatype ObjectGetter(DWORD clientID);
 
 void ObjectThread(int arg)
 {
+	bool CollStatus = true;
 	int clientID = (int)(arg);
 	ObjectManager* object = new ObjectManager();
 	ObjConnet[clientID] = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -68,11 +69,33 @@ void ObjectThread(int arg)
 			object->getClientID(clientID);
 			object->GameSet(buf);
 			if (buf.object_info.capacity() != 0) {
-				std::cout << "CharPosition" << /*buf.object_info[225].posX << ", "
-					<< buf.object_info[225].posY <<*/ "\r";
+				/*std::cout << "CharPosition" << buf.object_info[225].posX << ", "
+					<< buf.object_info[225].posY << "\r";*/
 			}
 			object->Key_Check();
 			buf = object->Update();
+
+			for (int i = 0; i < 4; i++)
+			{
+				CollStatus = object->Object_collision(serverData[i]->buf);
+				if (CollStatus == false)
+				{
+					if (buf.object_info[0].type == Char_Idle && serverData[i]->buf.object_info[0].type == Bubble_bomb)// 물풍선 충돌처리
+					{
+						buf.object_info[0].type = Non_Obj;//플레이어 상태 변화
+
+						CollStatus = true;
+					}
+					else
+					{
+						CollStatus = true;
+					}
+				}
+				else
+				{
+				}
+			} // 오브젝트 
+
 			lock.unlock();
 			ObjectSaver(clientID, buf);
 			break;
@@ -211,7 +234,7 @@ int main()
 					retval = send(client_sock, (char*)&ID[nTotalSockets - 1].clientID, sizeof(int), 0);
 					serverData[nTotalSockets - 1]->recvbytes = retval;
 					//FD_SET(client_sock, &rset);
-					recvCheck[nTotalSockets - 1] = FALSE;
+					recvCheck[nTotalSockets - 1] = TRUE;
 				}
 			}
 			if (--nready <= 0) { continue; }
@@ -228,15 +251,8 @@ int main()
 				std::cout << "recive datas" << std::endl;
 				retval = recv(ptr->socket, buffer, BUFSIZE, 0);
 
-				if (retval == SOCKET_ERROR) {
+				if (retval == SOCKET_ERROR || retval == 0) {
 					err_display("recv()");
-					RemoveSocketInfo(i);
-					SetEvent(ObjConnet[i]);
-					objectThread[i].join();
-					ResetEvent(ObjConnet[nTotalSockets - 1]);
-					ObjConnet[nTotalSockets - 1] = nullptr;
-				}
-				else if (retval == 0) {
 					RemoveSocketInfo(i);
 					SetEvent(ObjConnet[i]);
 					objectThread[i].join();
@@ -277,8 +293,7 @@ int main()
 				for (int j = 0; j < 4; ++j) {
 					if (j < nTotalSockets) {
 						Serialize(&serverData[j]->buf, buffer, BUFSIZE);
-						retval = send(ptr->socket, buffer + serverData[j]->sendbytes,
-							serverData[j]->recvbytes - serverData[j]->sendbytes, 0);
+						retval = send(ptr->socket, buffer, BUFSIZE, 0);
 
 						//std::cout << i+1 << " Client send : " << serverData[i]->buf.wParam << std::endl;
 

@@ -5,6 +5,9 @@
 class ObjectManager
 {
 public:
+	enum CollVec { CollUp = 0, CollDown = 1, CollLeft = 2, CollRight = 3 };
+	int Obj_SizeX, Obj_SizeY;
+
 	ObjectManager();
 	~ObjectManager();
 
@@ -12,7 +15,9 @@ public:
 	Send_datatype Update();
 
 	void Key_Check();
-	void Object_collision();
+	obj_info GetPosition() { return this->buffer.object_info[0]; };
+	int ReturnObjType() { return this->buffer.object_info[0].type; };
+	bool Object_collision(Send_datatype& other);
 
 	void getClientID(int id);
 
