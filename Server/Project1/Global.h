@@ -95,12 +95,6 @@ struct EventQueue {
 	int msgType;
 };
 
-struct ClientInfo {
-	SOCKET socket;
-	DWORD clientID;
-	HANDLE clientEvent;
-};
-
 struct ServerData
 {
 	SOCKET socket;

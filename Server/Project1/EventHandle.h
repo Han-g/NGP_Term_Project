@@ -13,7 +13,7 @@ public:
 
 	void check_obj(Send_datatype data);
 	void check_key();
-	obj_info update_char(int x, int y);
+	Send_datatype update_char(int x, int y);
 	inline void move_char(int x, int y);
 	inline void set_bubble(int char_x, int char_y);
 
@@ -26,7 +26,7 @@ public:
 private:
 	Send_datatype buf;
 	obj_info tem = { 0,0,0,0,0,0,{0,0} };
-	obj_info char_info;
+	obj_info* char_info;
 	int wParam;
 
 	bool m_Key_UP;
